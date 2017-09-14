@@ -1,17 +1,12 @@
 //NOTE THIS PROJECT IS FOR NOW... COMPLETELY PRE-ALPHA :)
 
 const mongoose = require("mongoose"),
-express = require("express"),
-app = express(),
-config = require("./server.json"),
+config = require("./config.json"),
 ethereum_address_tx = require("./model/ethereum_address_tx"),
 Web3 = require("web3"),
 web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545")),
 LocalStorage = require('node-localstorage').LocalStorage,
 localStorage = new LocalStorage("./localstorage");
-
-
-const server = require("http").Server(app);
 
 mongoose.connect(config.mongo);
 
@@ -30,7 +25,7 @@ function fetchBlock(block_number, end) {
       block_count_promise = web3.eth.getBlockTransactionCount(block_number);
       block_count_promise.then(transaction_count => {
         if(transaction_count > 0) {
-          var block_promise = getBlock(block_number, true);
+          var block_promise = web3.eth.getBlock(block_number, true);
           block_promise.then(block => {
             if (block != null && block.transactions != null) {
               const call = (i, saved) => {
