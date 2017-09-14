@@ -1,0 +1,16 @@
+{
+  "name": "ethxplorer",
+  "version": "0.0.1",
+  "description": "Tiny and simple ethereum transactions explorer",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kévin LE PERF",
+  "license": "GPL v3.0",
+  "dependencies": {
+    "mongoose": "^4.11.11",
+    "node-localstorage": "^1.3.0",
+    "web3": "^1.0.0-beta.18"
+  }
+}
