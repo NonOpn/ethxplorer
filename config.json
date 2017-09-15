@@ -1,4 +1,2 @@
 {
-  "mongo": "mongodb://localhost/ethxplorer",
-  "web3": "http://localhost:8545"
 }

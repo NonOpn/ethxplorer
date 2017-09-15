@@ -1,0 +1,5 @@
+{
+  "mongo": "mongodb://localhost/ethxplorer_tx",
+  "web3": "http://localhost:8545",
+  "speedup": 30
+}
