@@ -34,11 +34,13 @@ function fetchBlock(block_number, end) {
                   ethereum_address_tx.save(transaction)
                   .then((tx) => {
                     if(tx) console.log("1 saved");
-                    //call(i+1, (tx != undefined) ? saved+1 : 0);
+                    call(i+1, (tx != undefined) ? saved+1 : 0);
                   })
                   .catch((e) => {
+                    console.log(e);
+                    call(i+1, saved);
                   })
-                  call(i+1, saved);
+                  //call(i+1, saved);
                 } else {
                   diff = process.hrtime(startTime);
                   console.log(`finish current ${block_number} block == ${i} #${saved} saved ${diff}`);
