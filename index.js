@@ -4,7 +4,7 @@ const mongoose = require("mongoose"),
 config = require("./config.json"),
 ethereum_address_tx = require("./model/ethereum_address_tx"),
 Web3 = require("web3"),
-web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545")),
+web3 = new Web3(new Web3.providers.HttpProvider(config.web3)),
 LocalStorage = require('node-localstorage').LocalStorage,
 localStorage = new LocalStorage("./localstorage");
 
@@ -51,12 +51,18 @@ function fetchBlock(block_number, end) {
               console.log(`finish current block == no transaction`);
               resolve(true);
             }
+          })
+          .catch(() => {
+            resolve(true);
           });
         } else {
           diff = process.hrtime(startTime);
           console.log(`finish current ${block_number} block skip ${diff}`);
           resolve(true);
         }
+      })
+      .catch(() => {
+        resolve(true);
       });
     } else {
       resolve(false);
@@ -72,17 +78,21 @@ function manageTransactionsForBlocks(startBlockNumber = 0, endBlockNumber = unde
 
       const call = (i) => {
         if(i < endBlockNumber) {
+          //artifically speed up x3
           fetchBlock(i, endBlockNumber)
+          fetchBlock(i+1, endBlockNumber)
+
+          fetchBlock(i+2, endBlockNumber)
           .then(() => {
 
             if(i % 100 === 0) {
               console.log("saving current block");
               localStorage.setItem("lastBlock", i);
             }
-            call(i+1);
+            call(i+3);
           })
           .catch(() => {
-            call.bind(null, i+1);
+            call(i+3);
           })
         } else {
           console.log("finished call");
