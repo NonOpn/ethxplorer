@@ -33,7 +33,6 @@ function fetchBlock(block_number, end) {
                   const transaction = block.transactions[i];
                   ethereum_address_tx.save(transaction)
                   .then((tx) => {
-                    if(tx) console.log("1 saved");
                     call(i+1, (tx != undefined) ? saved+1 : 0);
                   })
                   .catch((e) => {
