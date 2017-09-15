@@ -70,7 +70,10 @@ function fetchBlock(block_number, end) {
   });
 }
 
-function manageTransactionsForBlocks(startBlockNumber = 0, endBlockNumber = undefined) {
+var save_timer = 100;
+const speedup = 5;
+
+function manageTransactionsForBlocks(speedup, startBlockNumber = 0, endBlockNumber = undefined) {
   return new Promise((resolve, reject) => {
 
     const callback = (endBlockNumber) => {
@@ -78,22 +81,44 @@ function manageTransactionsForBlocks(startBlockNumber = 0, endBlockNumber = unde
 
       const call = (i) => {
         if(i < endBlockNumber) {
-          //artifically speed up x3
-          fetchBlock(i, endBlockNumber)
-          fetchBlock(i+1, endBlockNumber)
-
-          fetchBlock(i+2, endBlockNumber)
-          .then(() => {
-
-            if(i % 100 === 0) {
-              console.log("saving current block");
+          var finished = 0;
+          const treshold = i + speedup;
+          const callback = () => {
+            save_timer --;
+            if(save_timer <= 0) {
+              console.log("saving current block at index of current work block");
               localStorage.setItem("lastBlock", i);
+              save_timer = 100;
             }
-            call(i+3);
-          })
-          .catch(() => {
-            call(i+3);
-          })
+
+            if(finished > speedup) {
+              console.error(`finished should not inf than 0 ${i} ${finished}`);
+            }
+
+            if(finished >= speedup) {
+              call(i);
+            }
+          }
+
+          if(treshold > endBlockNumber) {
+            //if we were at X block after last, we add X from the finihed counter
+            finished += (treshold - endBlockNumber);
+          }
+
+          while(i < endBlockNumber && i < treshold) {
+            fetchBlock(i, endBlockNumber)
+            .then(() => {
+              finished ++;
+              callback();
+            })
+            .catch((err) => {
+              console.error(err);
+              finished ++;
+              callback();
+            });
+            i++;
+          }
+
         } else {
           console.log("finished call");
           resolve(true);
@@ -132,7 +157,7 @@ else lastBlock = parseInt(lastBlock);
 if(lastBlock < 400000) lastBlock = 400000
 
 console.log(`starting at block ${lastBlock}`);
-manageTransactionsForBlocks(lastBlock)
+manageTransactionsForBlocks(speedup, lastBlock)
 .then(success => {
   console.log(success);
 })
