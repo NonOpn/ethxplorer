@@ -122,7 +122,7 @@ function manageTransactionsForBlocks(speedup, startBlockNumber = 0, endBlockNumb
 
         } else {
           console.log("finished call");
-          resolve(true);
+          resolve(i);
         }
       }
 
@@ -158,10 +158,26 @@ else lastBlock = parseInt(lastBlock);
 if(lastBlock < 400000) lastBlock = 400000
 
 console.log(`starting at block ${lastBlock}`);
-manageTransactionsForBlocks(speedup, lastBlock)
-.then(success => {
-  console.log(success);
-})
-.catch(e => {
-  console.log(e);
-})
+
+var is_started = false;
+
+function start() {
+  if(!is_started) {
+    is_started = true;
+    console.log("starting retrieval now...");
+    manageTransactionsForBlocks(speedup, lastBlock)
+    .then(last_block_managed => {
+      console.log(`last block := ${last_block_managed}`);
+      lastBlock = last_block_managed;
+      speedup = 1;
+      is_started = false;
+    })
+    .catch(e => {
+      console.log(e);
+    })
+  }
+}
+
+setInterval(() => {
+  start();
+}, 5000);
