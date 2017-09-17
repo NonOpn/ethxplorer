@@ -2,7 +2,6 @@
 
 const Blocks = require("./blocks.js");
 
-
 const blocks = new Blocks();
 
 
