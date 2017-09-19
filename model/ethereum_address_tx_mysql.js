@@ -33,6 +33,16 @@ connection.query("CREATE TABLE IF NOT EXISTS Transaction ("
 
 const ETHEREUM_ADDRESS_TX = "Transaction";
 
+function createInsertRows() {
+  var columns = ["blockHash","blockNumber","timestamp","from","gas","gasPrice", "hash", "input", "nonce", "to", "value"]
+  columns = columns.map(function(col) {
+    return "`"+col+"`";
+  });
+  return "INSERT INTO Transaction ("+columns.join(",")+") VALUES ? ";
+}
+
+const INSERT_ROWS = createInsertRows();
+
 function txToJson(tx) {
   return {
     timestamp: tx.timestamp,
@@ -47,6 +57,22 @@ function txToJson(tx) {
     to: tx.to ? tx.to.toLowerCase() : "",
     value: tx.value
   }
+}
+
+function txToArrayForInsert(tx) {
+  return [
+    tx.blockHash,
+    tx.blockNumber,
+    tx.timestamp,
+    tx.from,
+    tx.gas,
+    tx.gasPrice,
+    tx.hash,
+    tx.input,
+    tx.nonce,
+    tx.to,
+    tx.value
+  ]
 }
 
 const EthereumAddressTxMysqlModel = function() {
@@ -109,13 +135,15 @@ EthereumAddressTxMysqlModel.prototype.get = function(tx) {
 
 EthereumAddressTxMysqlModel.prototype.saveMultiple = function(txs, block) {
   return new Promise((resolve, reject) => {
+    const array = [];
+
     txs.forEach(transaction => {
       transaction.timestamp = block.timestamp;
+      array.push(txToArrayForInsert(transaction));
     });
 
-    connection.query("INSERT INTO Transaction SET ?", txs, (error, results, fields) => {
+    connection.query(INSERT_ROWS, [array], (error, results, fields) => {
       if(error && error.code !== "ER_DUP_ENTRY") {
-        console.log(txs);
         console.log(error);
         console.log(results);
         console.log(fields);

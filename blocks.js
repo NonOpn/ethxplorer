@@ -33,6 +33,9 @@ Blocks.prototype.init = function() {
 
     this.manageTransactionsForBlocks(current_block_number, end_block_number)
     .then(last_block_managed => {
+      //if 1000 TX was made in the batch, set last block managed to it
+      //it does not manage the save EVERY 1000 from the previous batches
+      //but only every 10000 in the current batch
       if(last_block_managed - this._last_block > 1000) {
         console.log("saving current block at index of current work block");
         this.setLastBlockManaged(last_block_managed);
@@ -43,10 +46,6 @@ Blocks.prototype.init = function() {
       console.log(e);
     });
   })
-}
-
-Blocks.prototype.getBlockNumber = function() {
-  return web3.eth.getBlockNumber();
 }
 
 Blocks.prototype.setLastBlockManaged = function(block_number) {
@@ -61,9 +60,6 @@ Blocks.prototype.getLastBlockManaged = function() {
 
       if(!this._last_block) this._last_block = 0;
       else this._last_block = parseInt(this._last_block);
-
-      //seems that there are no tx before those block...
-      if(this._last_block < 400000) this._last_block = 400000
     }
     resolve(this._last_block);
   });
@@ -82,7 +78,7 @@ Blocks.prototype.internalStart = function(first_block) {
 
     console.log(`starting at block ${first_block}`);
 
-    this.getBlockNumber()
+    web3.eth.getBlockNumber()
     .then(blockNumber => {
       if(first_block + 100000 < blockNumber) {
         blockNumber = first_block + 100000;
@@ -99,12 +95,16 @@ Blocks.prototype.fetchBlock = function(block_number, end) {
     setTimeout(() => {
       if(!finished) {
         canceled = true;
+        console.log("canceled");
         reject(`not retrieved for block #${block_number}`);
       }
     }, 10000);
     web3.eth.getBlock(block_number, true, (err, block) => {
       finished = true;
-      if(canceled) return;
+      if(canceled) {
+        console.log("was canceled");
+        return;
+      }
 
       const retrieval = process.hrtime(start);
       try{
@@ -125,13 +125,17 @@ Blocks.prototype.fetchBlock = function(block_number, end) {
                 resolve(0);
               } else {
                 ethereum_address_tx.saveMultiple(filtered, block)
-                .then(result => { resolve(result.length); }).catch(err => {
+                .then(result => {
+                  console.log(`block #${block_number} :${block.transactions.length} :${filtered.length} :${result.length}`);
+                  resolve(result.length);
+                }).catch(err => {
                   console.log("err");
                   console.log(err);
                 })
               }
             })
             .catch(err => {
+              console.log(`block #${block_number} :${block.transactions.length} :0`);
               console.log(`#${block_number} error`, err);
             });
           } else {
