@@ -6,7 +6,6 @@ localStorage = new LocalStorage("./localstorage"),
 ethereum_address_tx = require("./model/ethereum_address_tx_mysql"),
 Web3 = require("web3"),
 web3 = new Web3(new Web3.providers.HttpProvider(config.web3));
-
 //constructor
 function Blocks(prefix = "") {
   this._prefix = prefix || "";
@@ -37,7 +36,6 @@ Blocks.prototype.init = function() {
       //it does not manage the save EVERY 1000 from the previous batches
       //but only every 10000 in the current batch
       if(last_block_managed - this._last_block > 1000) {
-        console.log("saving current block at index of current work block");
         this.setLastBlockManaged(last_block_managed);
       }
       this._internal_event.emit("current_batch", last_block_managed, end_block_number);
@@ -95,14 +93,12 @@ Blocks.prototype.fetchBlock = function(block_number, end) {
     setTimeout(() => {
       if(!finished) {
         canceled = true;
-        console.log("canceled");
         reject(`not retrieved for block #${block_number}`);
       }
     }, 10000);
     web3.eth.getBlock(block_number, true, (err, block) => {
       finished = true;
       if(canceled) {
-        console.log("was canceled");
         return;
       }
 
@@ -126,27 +122,24 @@ Blocks.prototype.fetchBlock = function(block_number, end) {
               } else {
                 ethereum_address_tx.saveMultiple(filtered, block)
                 .then(result => {
-                  console.log(`block #${block_number} :${block.transactions.length} :${filtered.length} :${result.length}`);
+                  //log(`block #${block_number} :${block.transactions.length} :${filtered.length} :${result.length}`);
                   resolve(result.length);
                 }).catch(err => {
-                  console.log("err");
                   console.log(err);
                 })
               }
             })
             .catch(err => {
-              console.log(`block #${block_number} :${block.transactions.length} :0`);
-              console.log(`#${block_number} error`, err);
+              console.log(err);
             });
           } else {
             resolve(0);
           }
         } else {
-          console.log(`#${block_number} finished with an error`);
           reject(err);
         }
       }catch(e) {
-        console.log(e);
+        log(e);
       }
     });
   });
