@@ -24,7 +24,10 @@ connection.query("CREATE TABLE IF NOT EXISTS Transaction ("
   +"`nonce` VARCHAR(255) NULL,"
   +"`to` VARCHAR(255) NULL,"
   +"`value` VARCHAR(255) NULL,"
-  +"UNIQUE KEY `hash` (`hash`)"
+  +"UNIQUE KEY `hash` (`hash`),"
+  +"KEY `timestamp` (`timestamp`),"
+  +"KEY `from` (`from`),"
+  +"KEY `to` (`to`)"
   +")ENGINE=MyISAM;", function(err, results, fields) {
     console.log(err);
     console.log(results);
