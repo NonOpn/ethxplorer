@@ -9,5 +9,6 @@ module.exports = {
     "user" : process.env.MYSQL_USER,
     "password" : process.env.MYSQL_PASSWORD,
     "database" : process.env.MYSQL_DATABASE
-  }
+  },
+  "timeout_block": parseInt(process.env.TIMEOUT_BLOCK)
 }
