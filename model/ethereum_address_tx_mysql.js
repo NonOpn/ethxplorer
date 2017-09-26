@@ -1,6 +1,5 @@
 const mysql = require("mysql"),
 Abstract = require("./abstract.js"),
-models_utils = require("./models_utils"),
 config = require("../configs/blocks.js");
 
 var connection = mysql.createConnection({
@@ -26,12 +25,11 @@ connection.query("CREATE TABLE IF NOT EXISTS Transaction ("
   +"`value` VARCHAR(255) NULL,"
   +"UNIQUE KEY `hash` (`hash`),"
   +"KEY `timestamp` (`timestamp`),"
+  +"KEY `blockNumber` (`blockNumber`),"
   +"KEY `from` (`from`),"
   +"KEY `to` (`to`)"
   +")ENGINE=MyISAM;", function(err, results, fields) {
-    console.log(err);
-    console.log(results);
-    console.log(fields);
+    console.log("table creation finished");
 });
 
 const ETHEREUM_ADDRESS_TX = "Transaction";
