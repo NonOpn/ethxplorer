@@ -19,7 +19,7 @@ function Blocks(prefix = "") {
 Blocks.prototype.init = function() {
   const finish = (current_block_number, end_block_number) => {
     first_block = current_block_number;
-    this.setLastBlockManaged(first_block - 1);
+    this.setLastBlockManaged(first_block);
     this._is_started = false;
   }
 
@@ -82,6 +82,9 @@ Blocks.prototype.internalStart = function(first_block) {
         blockNumber = first_block + 100000;
       }
       this._internal_event.emit("current_batch", first_block, blockNumber);
+    })
+    .catch(err => {
+      this._is_started = false;
     });
   }
 }
@@ -95,7 +98,7 @@ Blocks.prototype.fetchBlock = function(block_number, end) {
         canceled = true;
         reject(`not retrieved for block #${block_number}`);
       }
-    }, 10000);
+    }, config.timeout_block);
     web3.eth.getBlock(block_number, true, (err, block) => {
       finished = true;
       if(canceled) {
@@ -122,7 +125,7 @@ Blocks.prototype.fetchBlock = function(block_number, end) {
               } else {
                 ethereum_address_tx.saveMultiple(filtered, block)
                 .then(result => {
-                  //log(`block #${block_number} :${block.transactions.length} :${filtered.length} :${result.length}`);
+                  console.log(`block #${block_number} :${block.transactions.length} :${filtered.length} :${result.length}`);
                   resolve(result.length);
                 }).catch(err => {
                   console.log(err);
@@ -141,6 +144,9 @@ Blocks.prototype.fetchBlock = function(block_number, end) {
       }catch(e) {
         log(e);
       }
+    })
+    .catch(err => {
+      reject(err);
     });
   });
 }
@@ -163,7 +169,7 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
         resolve(startBlockNumber);
       })
       .catch(err => {
-        console.log("restarting in 10s....", err);
+        console.log("restarting in 10s....", err.toString());
         setTimeout(() => { resolve(begin_block); }, 10000);
       })
     } else {
