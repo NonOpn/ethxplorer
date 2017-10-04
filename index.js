@@ -1,6 +1,7 @@
 //NOTE THIS PROJECT IS FOR NOW... COMPLETELY PRE-ALPHA :)
 
 const Blocks = require("./blocks.js");
+const server = require("./server.js");
 
 const blocks = new Blocks();
 
