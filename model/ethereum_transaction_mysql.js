@@ -120,10 +120,11 @@ EthereumTransactionMysqlModel.prototype.get = function(tx) {
   });
 }
 
-EthereumTransactionMysqlModel.prototype.withInput = function(input) {
+EthereumTransactionMysqlModel.prototype.withInput = function(input, blockNumber = 0, limit = 1000) {
   return new Promise((resolve, reject) => {
     const input_hash = murmurHash(input);
-    connection.query(selectColumnsJoin() + " WHERE `input_hashcode` = ? AND `input` = ?", [input_hash, input],  (error, results, fields) => {
+    const query = selectColumnsJoin() + " WHERE `input_hashcode` = ? AND `input` = ? AND blockNumber > ? LIMIT ?";
+    connection.query(query, [input_hash, input, blockNumber, limit],  (error, results, fields) => {
       if(error) {
         console.log(error);
         reject(error);
@@ -133,7 +134,6 @@ EthereumTransactionMysqlModel.prototype.withInput = function(input) {
       if(results && results.length > 0) {
         resolve(results);
       } else {
-        console.log("finish", results);
         resolve([]);
       }
     });
@@ -145,8 +145,7 @@ EthereumTransactionMysqlModel.prototype.withAddress = function(address, blockNum
     EthereumAddressMysqlModel.getOrSave(address)
     .then(json => {
       address = json.id;
-      const query = selectColumnsJoin() + " WHERE (T.`from` = ? OR T.`to` = ? ) AND blockNumber >= ? ORDER BY blockNumber LIMIT ?";
-      console.log(query);
+      const query = selectColumnsJoin() + " WHERE (T.`from` = ? OR T.`to` = ? ) AND blockNumber >= ? LIMIT ?";
       connection.query(query, [address, address, blockNumber, limit],  (error, results, fields) => {
         if(error) {
           console.log(error);
@@ -157,7 +156,6 @@ EthereumTransactionMysqlModel.prototype.withAddress = function(address, blockNum
         if(results && results.length > 0) {
           resolve(results);
         } else {
-          console.log(results);
           resolve([]);
         }
       });
