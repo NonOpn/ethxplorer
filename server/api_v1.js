@@ -10,6 +10,40 @@ const ERROR_WITH_ADDRESS = "Error with address";
 const MISSING_PARAMS_INPUT = "Missing params input";
 const MISSING_PARAMS_ADDRESS = "Missing params address";
 
+function getTransactionsForAddressFromDesc(req, res, from) {
+  const address = req.params.address || undefined;
+
+  if(address && web3.utils.isAddress(address)) {
+    ethereum_transaction.withAddressFromId(address, LIMIT, from)
+    .then(results => {
+      var last_id = undefined;
+      results.forEach(result => {
+        if(!last_id || result.id < last_id) last_id = result.id;
+      })
+      res.json({
+        last: last_id,
+        transactions: results
+      });
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({error: ERROR_WITH_ADDRESS, code: -2});
+    });
+  } else {
+    res.json({error: MISSING_PARAMS_ADDRESS, code: -1});
+  }
+}
+
+router.get("/address/:address/from/desc.json", function(req, res) {
+  getTransactionsForAddressFromDesc(req, res);
+});
+
+router.get("/address/:address/from/desc/:from.json", function(req, res) {
+  const from = req.params.from || undefined;
+  if(isNaN(from)) from = 0;
+  getTransactionsForAddressFromDesc(req, res, from);
+});
+
 router.get("/address/:address.json", function(req, res) {
   const address = req.params.address || undefined;
   var from = parseInt(req.query.from || 0);
@@ -27,6 +61,7 @@ router.get("/address/:address.json", function(req, res) {
       //having the lastBlockNumberPossiblyIncomplete tells that the API
       //can reach the limit before having a whole block transactions
       //simply recall the api with ?from=<lastBlock + 1>
+      //TODO switch this to id since now id = <block + nonce>
 
       if(results.length === LIMIT) {
         results = results.filter(result => { return result.blockNumber != last_id; });
@@ -53,11 +88,13 @@ router.get("/address/:address.json", function(req, res) {
 
 router.get("/tx/match/input/:input.json", function(req, res) {
   const input = req.params.input || undefined;
+  var from = parseInt(req.query.from || 0);
+  if(isNaN(from)) from = 0;
 
   if(input && input != "0x") {
     //const input_hex = web3.utils.toHex(input).toLowerCase();
     const input_hex = input.toLowerCase();
-    ethereum_transaction.withInput(input_hex)
+    ethereum_transaction.withInput(input_hex, from, LIMIT)
     .then(results => {
       res.json({
         transactions: results

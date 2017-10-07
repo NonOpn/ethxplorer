@@ -23,7 +23,7 @@ function selectColumns() {
 
 function selectColumnsJoin() {
   var columns = COLUMNS_NO_FOREIGN.map((col) => { return "`"+col+"`"; });
-  return "SELECT "+columns.join(",")+", `AFROM`.`address` AS `from`, `ATO`.`address` AS `to` FROM Transaction AS T LEFT JOIN Address AS AFROM ON AFROM.id=T.`from` LEFT JOIN Address AS ATO ON ATO.id=T.`to`";
+  return "SELECT T.`id`, "+columns.join(",")+", `AFROM`.`address` AS `from`, `ATO`.`address` AS `to` FROM Transaction AS T LEFT JOIN Address AS AFROM ON AFROM.id=T.`from` LEFT JOIN Address AS ATO ON ATO.id=T.`to`";
 }
 
 function selectJoinAddresses() {
@@ -62,6 +62,17 @@ function txToArrayForInsert(tx, from, to) {
   ]
 }
 
+const lambdaArray = (resolve, reject) => {
+  return (error, results, fields) => {
+    if(error) {
+      console.log(error);
+      reject(error);
+      return;
+    }
+    resolve(results);
+  };
+};
+
 const EthereumTransactionMysqlModel = function() {
 
 }
@@ -81,11 +92,7 @@ EthereumTransactionMysqlModel.prototype.exists = function(tx) {
         return;
       }
 
-      if(results && results.length > 0) {
-        resolve(true);
-      } else {
-        resolve(false);
-      }
+      resolve( results && results.length > 0 );
     });
   });
 }
@@ -124,18 +131,50 @@ EthereumTransactionMysqlModel.prototype.withInput = function(input, blockNumber 
   return new Promise((resolve, reject) => {
     const input_hash = murmurHash(input);
     const query = selectColumnsJoin() + " WHERE `input_hashcode` = ? AND `input` = ? AND blockNumber > ? LIMIT ?";
-    connection.query(query, [input_hash, input, blockNumber, limit],  (error, results, fields) => {
-      if(error) {
-        console.log(error);
-        reject(error);
-        return;
-      }
+    connection.query(query, [input_hash, input, blockNumber, limit], lambdaArray(resolve, reject));
+  });
+}
 
-      if(results && results.length > 0) {
-        resolve(results);
-      } else {
-        resolve([]);
-      }
+EthereumTransactionMysqlModel.prototype.countForAddress = function(address) {
+  return new Promise((resolve, reject) => {
+    EthereumAddressMysqlModel.getOrSave(address)
+    .then(json => {
+      address = json.id;
+      const query = "SELECT \"from\" AS `type`, COUNT(*) AS count FROM Transaction WHERE `from`=? UNION SELECT \"to\" AS `type`, COUNT(*) AS count FROM Transaction WHERE `to`=? UNION SELECT \"same\" AS `type`, COUNT(*) AS count FROM Transaction WHERE `from`=? AND `to`=?;";
+      console.log(query);
+      connection.query(query, [address, address, address, address],  (error, results, fields) => {
+        if(error) {
+          console.log(error);
+          reject(error);
+          return;
+        }
+
+        if(results && results.length === 3) {
+          resolve(results[0].count + results[1].count - results[2].count);
+        } else {
+          resolve(0);
+        }
+      });
+    });
+  });
+}
+
+//since we now save block per block where tx are deterministically saved
+//we can use where id < <given id> to improve pagination retrieval
+EthereumTransactionMysqlModel.prototype.withAddressFromId = function(address, limit = 1000, from = Number.MAX_SAFE_INTEGER) {
+  return new Promise((resolve, reject) => {
+    EthereumAddressMysqlModel.getOrSave(address)
+    .then(json => {
+      address = json.id;
+      //TODO look for improvement
+      const query_look_from_to = "SELECT `id` FROM "
+      + " ((SELECT `id` FROM Transaction WHERE `to`=? AND `id` < ? ORDER BY id DESC LIMIT ?)"
+      + " UNION"
+      + " (SELECT `id` FROM Transaction WHERE `from`=? AND `id` < ? ORDER BY id DESC LIMIT ?)) AS T"
+      + " ORDER BY T.`id` DESC LIMIT ?";
+      const query = selectColumnsJoin() + " INNER JOIN ("+query_look_from_to+") AS COMP ON COMP.`id` = T.`id`";
+      console.log(query);
+      connection.query(query, [address, from, limit, address, from, limit, limit], lambdaArray(resolve, reject));
     });
   });
 }
@@ -146,19 +185,7 @@ EthereumTransactionMysqlModel.prototype.withAddress = function(address, blockNum
     .then(json => {
       address = json.id;
       const query = selectColumnsJoin() + " WHERE (T.`from` = ? OR T.`to` = ? ) AND blockNumber >= ? LIMIT ?";
-      connection.query(query, [address, address, blockNumber, limit],  (error, results, fields) => {
-        if(error) {
-          console.log(error);
-          reject(error);
-          return;
-        }
-
-        if(results && results.length > 0) {
-          resolve(results);
-        } else {
-          resolve([]);
-        }
-      });
+      connection.query(query, [address, address, blockNumber, limit],  lambdaArray(resolve, reject));
     });
   });
 }
