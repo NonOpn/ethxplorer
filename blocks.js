@@ -94,69 +94,6 @@ Blocks.prototype.internalStart = function(first_block) {
   }
 }
 
-Blocks.prototype.fetchBlock = function(block_number, end) {
-  return new Promise((resolve, reject) => {
-    const start = process.hrtime();
-    var finished = false, canceled = false;
-    setTimeout(() => {
-      if(!finished) {
-        canceled = true;
-        reject(`not retrieved for block #${block_number}`);
-      }
-    }, config.timeout_block);
-    web3.eth.getBlock(block_number, true, (err, block) => {
-      finished = true;
-      if(canceled) {
-        return;
-      }
-
-      const retrieval = process.hrtime(start);
-      try{
-        if(block != null){
-          if (block.transactions != null && block.transactions.length > 0) {
-            const promises = [];
-
-            block.transactions.forEach(transaction => {
-              promises.push(ethereum_transaction.filter(transaction));
-            });
-
-            Promise.all(promises)
-            .then(result => {
-              const filtered = [];
-              result.forEach(res => {if(res) { filtered.push(res);}});
-
-              if(filtered.length === 0) {
-                console.log(`block #${block_number} :${block.transactions.length} :${filtered.length} :${0}`);
-                resolve(0);
-              } else {
-                ethereum_transaction.saveMultiple(filtered, block)
-                .then(result => {
-                  console.log(`block #${block_number} :${block.transactions.length} :${filtered.length} :${result.length}`);
-                  resolve(result.length);
-                }).catch(err => {
-                  console.log(err);
-                })
-              }
-            })
-            .catch(err => {
-              console.log(err);
-            });
-          } else {
-            resolve(0);
-          }
-        } else {
-          reject(err);
-        }
-      }catch(e) {
-        log(e);
-      }
-    })
-    .catch(err => {
-      reject(err);
-    });
-  });
-}
-
 Blocks.prototype.fetchBlockRetrieveTransactions = function(block_number, end) {
   return new Promise((resolve, reject) => {
     const start = process.hrtime();
