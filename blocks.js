@@ -51,8 +51,10 @@ Blocks.prototype.init = function() {
 }
 
 Blocks.prototype.setLastBlockManaged = function(block_number) {
-  localStorage.setItem(this._prefix + "lastBlock", block_number);
-  this._last_block = block_number;
+  if(this._last_block != block_number) {
+    localStorage.setItem(this._prefix + "lastBlock", block_number);
+    this._last_block = block_number;
+  }
 }
 
 Blocks.prototype.getLastBlockManaged = function() {
@@ -78,8 +80,6 @@ Blocks.prototype.internalStart = function(first_block) {
   if(!this._is_started) {
     this._is_started = true;
 
-    console.log(`starting at block ${first_block}`);
-
     web3.eth.getBlockNumber()
     .then(blockNumber => {
       blockNumber -= SAFE_BLOCK_DELTA_HEIGHT;
@@ -96,7 +96,44 @@ Blocks.prototype.internalStart = function(first_block) {
 
 Blocks.prototype.fetchBlockRetrieveTransactions = function(block_number, end) {
   return new Promise((resolve, reject) => {
-    const start = process.hrtime();
+
+    this.fetchBlock(block_number)
+    .then(block => {
+      if (block.transactions != null && block.transactions.length > 0) {
+        const promises = [];
+
+        block.transactions.forEach(transaction => {
+          promises.push(ethereum_transaction.filter(transaction));
+        });
+
+        Promise.all(promises)
+        .then(result => {
+          const filtered = [];
+          result.forEach(res => {if(res) { filtered.push(res);}});
+
+          resolve({
+            block: block,
+            transactions: filtered
+          });
+        })
+        .catch(err => {
+          console.log(err);
+        });
+      } else {
+        resolve({
+          block: block,
+          transactions: []
+        });
+      }
+    })
+    .catch(err => {
+      reject(err);
+    });
+  });
+}
+
+Blocks.prototype.fetchBlock = function(block_number) {
+  return new Promise((resolve, reject) => {
     var finished = false, canceled = false;
     setTimeout(() => {
       if(!finished) {
@@ -109,37 +146,9 @@ Blocks.prototype.fetchBlockRetrieveTransactions = function(block_number, end) {
       if(canceled) {
         return;
       }
-
-      const retrieval = process.hrtime(start);
       try{
         if(block != null){
-          if (block.transactions != null && block.transactions.length > 0) {
-            const promises = [];
-
-            block.transactions.forEach(transaction => {
-              promises.push(ethereum_transaction.filter(transaction));
-            });
-
-            Promise.all(promises)
-            .then(result => {
-              const filtered = [];
-              result.forEach(res => {if(res) { filtered.push(res);}});
-
-
-              resolve({
-                block: block,
-                transactions: filtered
-              });
-            })
-            .catch(err => {
-              console.log(err);
-            });
-          } else {
-            resolve({
-              block: block,
-              transactions: []
-            });
-          }
+          resolve(block);
         } else {
           reject(err);
         }
