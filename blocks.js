@@ -141,22 +141,15 @@ Blocks.prototype.fetchBlock = function(block_number) {
         reject(`not retrieved for block #${block_number}`);
       }
     }, config.timeout_block);
-    web3.eth.getBlock(block_number, true, (err, block) => {
+    web3.eth.getBlock(block_number, true)
+    .then((block) => {
       finished = true;
-      if(canceled) {
-        return;
-      }
-      try{
-        if(block != null){
-          resolve(block);
-        } else {
-          reject(err);
-        }
-      }catch(e) {
-        log(e);
-      }
+      if(canceled) { return; }
+      resolve(block);
     })
     .catch(err => {
+      finished = true;
+      if(canceled) { return; }
       reject(err);
     });
   });
