@@ -145,7 +145,8 @@ Blocks.prototype.fetchBlock = function(block_number) {
     .then((block) => {
       finished = true;
       if(canceled) { return; }
-      resolve(block);
+      if(block) resolve(block);
+      else reject("invalid block :: still syncing?");
     })
     .catch(err => {
       finished = true;
