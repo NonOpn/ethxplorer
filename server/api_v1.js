@@ -112,8 +112,8 @@ router.get("/tx/match/input/:input.json", function(req, res) {
 router.get("/state.json", function(req, res) {
   web3.eth.getSyncing()
   .then(syncing => {
-    const result = { syncing = false };
-    
+    const result = { syncing: false };
+
     if(syncing) {
       result.syncing = true;
       result.startingBlock = syncing.startingBlock;
