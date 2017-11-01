@@ -9,6 +9,7 @@ const ERROR_WITH_INPUT = "Error with input";
 const ERROR_WITH_ADDRESS = "Error with address";
 const MISSING_PARAMS_INPUT = "Missing params input";
 const MISSING_PARAMS_ADDRESS = "Missing params address";
+const ERROR_WITH_SYNC = "Error with the current server state";
 
 function getTransactionsForAddressFromDesc(req, res, from) {
   const address = req.params.address || undefined;
@@ -106,6 +107,27 @@ router.get("/tx/match/input/:input.json", function(req, res) {
   } else {
     res.json({error: MISSING_PARAMS_INPUT, code: -1});
   }
+});
+
+router.get("/state.json", function(req, res) {
+  web3.eth.getSyncing()
+  .then(syncing => {
+    const result = { syncing = false };
+    
+    if(syncing) {
+      result.syncing = true;
+      result.startingBlock = syncing.startingBlock;
+      result.currentBlock = syncing.currentBlock;
+      result.highestBlock = syncing.highestBlock;
+    } else {
+      result.currentBlock = web3.eth.blockNumber;
+    }
+
+    res.status(200).json(result);
+  })
+  .catch(err => {
+    res.status(500).json({error: ERROR_WITH_SYNC, code: -1});
+  })
 });
 
 module.exports = router;
