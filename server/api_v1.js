@@ -111,7 +111,7 @@ router.get("/tx/match/input/:input.json", function(req, res) {
 
 router.get("/state.json", function(req, res) {
   const result = {
-    blockchain: { syncing: false },
+    blockchain: { syncing: false, currentBlock: 0 },
     service: {
       count: 0,
       blockNumber: 0
@@ -130,6 +130,7 @@ router.get("/state.json", function(req, res) {
     return web3.eth.isSyncing();
   })
   .then(syncing => {
+    console.log(web3.eth.blockNumber);
     if(syncing) {
       result.blockchain.syncing = true;
       result.blockchain.startingBlock = syncing.startingBlock;
