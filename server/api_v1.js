@@ -110,22 +110,39 @@ router.get("/tx/match/input/:input.json", function(req, res) {
 });
 
 router.get("/state.json", function(req, res) {
-  web3.eth.isSyncing()
-  .then(syncing => {
-    const result = { syncing: false };
+  const result = {
+    blockchain: { syncing: false },
+    service: {
+      count: 0,
+      blockNumber: 0
+    }
+  };
 
+  ethereum_transaction.count()
+  .then(count => {
+    console.log(count);
+    result.service.count = count;
+    return ethereum_transaction.lastBlockNumber()
+  })
+  .then(lastBlockNumber => {
+    console.log(lastBlockNumber);
+    result.service.blockNumber = lastBlockNumber;
+    return web3.eth.isSyncing();
+  })
+  .then(syncing => {
     if(syncing) {
-      result.syncing = true;
-      result.startingBlock = syncing.startingBlock;
-      result.currentBlock = syncing.currentBlock;
-      result.highestBlock = syncing.highestBlock;
+      result.blockchain.syncing = true;
+      result.blockchain.startingBlock = syncing.startingBlock;
+      result.blockchain.currentBlock = syncing.currentBlock;
+      result.blockchain.highestBlock = syncing.highestBlock;
     } else {
-      result.currentBlock = web3.eth.blockNumber;
+      result.blockchain.currentBlock = web3.eth.blockNumber;
     }
 
     res.status(200).json(result);
   })
   .catch(err => {
+    console.log(err);
     res.status(500).json({error: ERROR_WITH_SYNC, code: -1});
   })
 });

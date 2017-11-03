@@ -238,27 +238,44 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
   });
 }
 
-EthereumTransactionMysqlModel.prototype.count = function(address) {
+EthereumTransactionMysqlModel.prototype.count = function() {
   return new Promise((resolve, reject) => {
-    EthereumAddressMysqlModel.getOrSave(address)
-    .then(json => {
-      address = json.id;
-      const query = "SELECT COUNT(*) as c FROM Transaction as T WHERE (T.`from` = ? OR T.`to` = ? )";
-      console.log(query);
-      connection.query(query, [address, address],  (error, results, fields) => {
-        if(error) {
-          console.log(error);
-          reject(error);
-          return;
-        }
+    const query = "SELECT MAX(id) as c FROM Transaction";
+    console.log(query);
+    connection.query(query,  (error, results, fields) => {
+      if(error) {
+        reject(error);
+        return;
+      }
 
-        if(results && results.length > 0) {
-          resolve(results[0].c);
-        } else {
-          console.log(results);
-          resolve(0);
-        }
-      });
+      if(results && results.length > 0) {
+        console.log(results);
+        resolve(results[0].c || 0);
+      } else {
+        console.log(results);
+        resolve(0);
+      }
+    });
+  });
+}
+
+EthereumTransactionMysqlModel.prototype.lastBlockNumber = function() {
+  return new Promise((resolve, reject) => {
+    const query = "SELECT MAX(blockNumber) as c FROM Transaction";
+    console.log(query);
+    connection.query(query,  (error, results, fields) => {
+      if(error) {
+        console.log(error);
+        reject(error);
+        return;
+      }
+
+      if(results && results.length > 0) {
+        resolve(results[0].c || 0);
+      } else {
+        console.log(results);
+        resolve(0);
+      }
     });
   });
 }
