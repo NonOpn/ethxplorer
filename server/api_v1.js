@@ -127,6 +127,10 @@ router.get("/state.json", function(req, res) {
   .then(lastBlockNumber => {
     console.log(lastBlockNumber);
     result.service.blockNumber = lastBlockNumber;
+    return web3.eth.getBlockNumber();
+  })
+  .then(currentBlock => {
+    result.blockchain.currentBlock = currentBlock;
     return web3.eth.isSyncing();
   })
   .then(syncing => {
@@ -136,8 +140,6 @@ router.get("/state.json", function(req, res) {
       result.blockchain.startingBlock = syncing.startingBlock;
       result.blockchain.currentBlock = syncing.currentBlock;
       result.blockchain.highestBlock = syncing.highestBlock;
-    } else {
-      result.blockchain.currentBlock = web3.eth.blockNumber;
     }
 
     res.status(200).json(result);
