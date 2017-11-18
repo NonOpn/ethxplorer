@@ -1,17 +1,14 @@
 
 const config = require("./configs/blocks.js"),
 EventEmitter = require("events").EventEmitter,
-LocalStorage = require("node-localstorage").LocalStorage,
-localStorage = new LocalStorage("./localstorage"),
-ethereum_transaction = require("./model/ethereum_transaction_mysql"),
-web3 = require("./web3/provider");
-
+ethereum_transaction = require("./model/ethereum_transaction_mysql");
 //it is considered safe to have at least 12 blocks after a given
 //block to prevent that the fetched block is a forked block
 const SAFE_BLOCK_DELTA_HEIGHT = 12;
 
 //constructor
-function Blocks(prefix = "") {
+function Blocks(provider, prefix = "") {
+  this._provider = provider;
   this._prefix = prefix || "";
   this._is_started = false;
   this._speedup = config.speedup;
@@ -23,25 +20,17 @@ function Blocks(prefix = "") {
 Blocks.prototype.init = function() {
   const finish = (current_block_number, end_block_number) => {
     first_block = current_block_number;
-    this.setLastBlockManaged(first_block);
     this._is_started = false;
   }
 
   this._internal_event.on("current_batch", (current_block_number, end_block_number) => {
     if(current_block_number >= end_block_number) {
-      this.setLastBlockManaged(current_block_number);
       finish(current_block_number, end_block_number);
       return;
     }
 
     this.manageTransactionsForBlocks(current_block_number, end_block_number)
     .then(last_block_managed => {
-      //if 1000 TX was made in the batch, set last block managed to it
-      //it does not manage the save EVERY 1000 from the previous batches
-      //but only every 10000 in the current batch
-      if(last_block_managed - this._last_block > 1000) {
-        this.setLastBlockManaged(last_block_managed);
-      }
       this._internal_event.emit("current_batch", last_block_managed, end_block_number);
     })
     .catch(e => {
@@ -50,22 +39,18 @@ Blocks.prototype.init = function() {
   });
 }
 
-Blocks.prototype.setLastBlockManaged = function(block_number) {
-  if(this._last_block != block_number) {
-    localStorage.setItem(this._prefix + "lastBlock", block_number);
-    this._last_block = block_number;
-  }
-}
-
 Blocks.prototype.getLastBlockManaged = function() {
   return new Promise((resolve, reject) => {
-    if(!this._last_block) {
-      this._last_block = localStorage.getItem(this._prefix + "lastBlock");
+      ethereum_transaction.lastBlockNumber()
+      .then(lastBlockNumber => {
+        this._last_block = lastBlockNumber;
 
-      if(!this._last_block) this._last_block = 0;
-      else this._last_block = parseInt(this._last_block);
-    }
-    resolve(this._last_block);
+        if(!this._last_block) this._last_block = 0;
+        resolve(this._last_block);
+      })
+      .catch(err => {
+
+      });
   });
 }
 
@@ -80,7 +65,7 @@ Blocks.prototype.internalStart = function(first_block) {
   if(!this._is_started) {
     this._is_started = true;
 
-    web3.eth.getBlockNumber()
+    this._provider.getBlockNumber()
     .then(blockNumber => {
       blockNumber -= SAFE_BLOCK_DELTA_HEIGHT;
       if(first_block + 100000 < blockNumber) {
@@ -102,8 +87,8 @@ Blocks.prototype.fetchBlockRetrieveTransactions = function(block_number, end) {
       if (block.transactions != null && block.transactions.length > 0) {
         const promises = [];
 
-        block.transactions.forEach(transaction => {
-          promises.push(ethereum_transaction.filter(transaction));
+        block.transactions.forEach(tx => {
+          promises.push(ethereum_transaction.filter(tx));
         });
 
         Promise.all(promises)
@@ -141,7 +126,8 @@ Blocks.prototype.fetchBlock = function(block_number) {
         reject(`not retrieved for block #${block_number}`);
       }
     }, config.timeout_block);
-    web3.eth.getBlock(block_number, true)
+
+    this._provider.getBlock(block_number, true)
     .then((block) => {
       finished = true;
       if(canceled) { return; }
@@ -174,6 +160,7 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
         const callback = (i) => {
           if(i < arraysOrBlockTransactions.length) {
             const block = arraysOrBlockTransactions[i].block;
+            //block.blockNumber = Number(block.blockNumber);
             const transactions = arraysOrBlockTransactions[i].transactions;
             ethereum_transaction.saveMultiple(transactions, block)
             .then(txs => {

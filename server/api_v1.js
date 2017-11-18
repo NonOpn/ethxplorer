@@ -109,45 +109,55 @@ router.get("/tx/match/input/:input.json", function(req, res) {
   }
 });
 
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+* Retrieve the current geth or parity node state and the current database
+* manager
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 router.get("/state.json", function(req, res) {
-  const result = {
-    blockchain: { syncing: false, currentBlock: 0 },
-    service: {
-      count: 0,
-      blockNumber: 0
-    }
-  };
+  //pushing promises corresponding to the different information to retrieve
+  console.log(web3.version);
+  const promises = [
+    ethereum_transaction.count(),
+    ethereum_transaction.lastBlockNumber(),
+    web3.eth.getBlockNumber(),
+    web3.eth.isSyncing(),
+    web3.version
+  ];
 
-  ethereum_transaction.count()
-  .then(count => {
-    console.log(count);
-    result.service.count = count;
-    return ethereum_transaction.lastBlockNumber()
-  })
-  .then(lastBlockNumber => {
-    console.log(lastBlockNumber);
-    result.service.blockNumber = lastBlockNumber;
-    return web3.eth.getBlockNumber();
-  })
-  .then(currentBlock => {
-    result.blockchain.currentBlock = currentBlock;
-    return web3.eth.isSyncing();
-  })
-  .then(syncing => {
-    console.log(web3.eth.blockNumber);
-    if(syncing) {
-      result.blockchain.syncing = true;
-      result.blockchain.startingBlock = syncing.startingBlock;
-      result.blockchain.currentBlock = syncing.currentBlock;
-      result.blockchain.highestBlock = syncing.highestBlock;
-    }
+  Promise.all(promises)
+  .then(results => {
+    if(results && results.length === promises.length) {
+      //results is deterministically right
+      var result = {
+        service: {
+          count: results[0],
+          blockNumber: results[1]
+        },
+        blockchain: {
+          currentBlock: results[2],
+          syncing: results[3],
+          version: results[4]
+        }
+      };
 
-    res.status(200).json(result);
+      const syncing = results[3];
+      if(syncing) {
+        result.blockchain.syncing = true;
+        result.blockchain.startingBlock = syncing.startingBlock;
+        result.blockchain.currentBlock = syncing.currentBlock;
+        result.blockchain.highestBlock = syncing.highestBlock;
+      }
+
+      res.status(200).json(result);
+    } else {
+      throw "Invalid result length, crashing";
+    }
   })
   .catch(err => {
     console.log(err);
     res.status(500).json({error: ERROR_WITH_SYNC, code: -1});
-  })
+  });
 });
 
 module.exports = router;

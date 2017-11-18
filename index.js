@@ -3,7 +3,9 @@
 const Blocks = require("./blocks.js");
 const server = require("./server.js");
 
-const blocks = new Blocks();
+const Provider = require("./provider/etherscan_provider");
+
+const blocks = new Blocks(new Provider());
 
 
 blocks.getLastBlockManaged()
