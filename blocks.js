@@ -174,7 +174,7 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
             ethereum_transaction.saveMultiple(transactions, block)
             .then(txs => {
               if(txs && txs.length > 0) {
-                console.log(`block ${block.number} saved ${transactions.length}`);
+                console.log(`block ${block.number} saved ${transactions.length} in ${txs.length} tables`);
               }
               //iterate on the next to save - do not use Promise.all since not sure MySQL save won't be parallel in future
               callback( i + 1 );
