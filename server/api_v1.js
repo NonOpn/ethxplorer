@@ -1,6 +1,6 @@
 const express = require("express"),
 router = express.Router(),
-ethereum_transaction = require("../model/ethereum_transaction_mysql"),
+ethereum_transaction = require("../model/ethereum_transaction_mysql_explode"),
 web3 = require("../web3/provider");
 
 const LIMIT = 1000;
@@ -118,11 +118,10 @@ router.get("/state.json", function(req, res) {
   //pushing promises corresponding to the different information to retrieve
   console.log(web3.version);
   const promises = [
-    ethereum_transaction.count(),
-    ethereum_transaction.lastBlockNumber(),
-    web3.eth.getBlockNumber(),
+    ethereum_transaction.systemDataAsJson(),
+    /*web3.eth.getBlockNumber(),
     web3.eth.isSyncing(),
-    web3.version
+    web3.version*/
   ];
 
   Promise.all(promises)
@@ -131,8 +130,7 @@ router.get("/state.json", function(req, res) {
       //results is deterministically right
       var result = {
         service: {
-          count: results[0],
-          blockNumber: results[1]
+          database: results[0]
         },
         blockchain: {
           currentBlock: results[2],

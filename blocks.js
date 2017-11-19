@@ -1,7 +1,7 @@
 
 const config = require("./configs/blocks.js"),
 EventEmitter = require("events").EventEmitter,
-ethereum_transaction = require("./model/ethereum_transaction_mysql");
+ethereum_transaction = require("./model/ethereum_transaction_mysql_explode");
 //it is considered safe to have at least 12 blocks after a given
 //block to prevent that the fetched block is a forked block
 const SAFE_BLOCK_DELTA_HEIGHT = 12;
@@ -12,7 +12,6 @@ function Blocks(provider, prefix = "") {
   this._prefix = prefix || "";
   this._is_started = false;
   this._speedup = config.speedup;
-  this._last_block = undefined;
   this._internal_event = new EventEmitter();
   this.init();
 }
@@ -41,12 +40,11 @@ Blocks.prototype.init = function() {
 
 Blocks.prototype.getLastBlockManaged = function() {
   return new Promise((resolve, reject) => {
+    console.log("getLastBlockManaged");
       ethereum_transaction.lastBlockNumber()
       .then(lastBlockNumber => {
-        this._last_block = lastBlockNumber;
-
-        if(!this._last_block) this._last_block = 0;
-        resolve(this._last_block);
+        if(lastBlockNumber < 46000) lastBlockNumber = 46000;
+        resolve(lastBlockNumber);
       })
       .catch(err => {
 
@@ -54,11 +52,22 @@ Blocks.prototype.getLastBlockManaged = function() {
   });
 }
 
-Blocks.prototype.start = function(retry_every_seconds, first_block) {
-  this._last_block = first_block;
+Blocks.prototype.start = function(retry_every_seconds) {
   setInterval(() => {
-    this.internalStart(this._last_block);
-  }, 2000);
+    if(!this.isStarted()) {
+      this.getLastBlockManaged()
+      .then(last_block => {
+        this.internalStart(last_block);
+      })
+      .catch(err => {
+        console.log(err);
+      })
+    }
+  }, retry_every_seconds);
+}
+
+Blocks.prototype.isStarted = function() {
+  return this._is_started;
 }
 
 Blocks.prototype.internalStart = function(first_block) {
