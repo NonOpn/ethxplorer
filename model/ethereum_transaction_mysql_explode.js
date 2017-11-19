@@ -210,7 +210,7 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
     txs.forEach(tx => {
       const standard = tableFromAddress(undefined);
       const table_from = tableFromAddress(tx.from);
-      const table_to = tableFromAddress(tx.to);
+      var table_to = tableFromAddress(tx.to);
 
       if(table_to == table_from) {
         //for instance we have 0xEB..C.. sending to 0xEB..A..
