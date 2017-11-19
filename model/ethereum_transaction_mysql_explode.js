@@ -245,22 +245,26 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
       }
     });
 
-    const table_promise = [];
-    tables.forEach(table => {
-      table_promise.push(this.saveMultipleForTable(table, array[table], block));
-    });
+    EthereumBlockMysqlModel.getOrSave(block)
+    .then(json => {
+      const table_promise = [];
+      tables.forEach(table => {
+        table_promise.push(this.saveMultipleForTable(table, array[table], json/*block*/));
+      });
 
-    Promise.all(table_promise)
-    .then(results => {
-      resolve(results);
-    })
-    .catch(err => {
-      console.log(err);
+      //saved block, no manage transactions
+      Promise.all(table_promise)
+      .then(results => {
+        resolve(results);
+      })
+      .catch(err => {
+        console.log(err);
+      })
     })
   })
 }
 
-EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, txs, block) {
+EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, txs, json/*block*/) {
   return new Promise((resolve, reject) => {
 
     if(!txs || txs.length == 0) {
@@ -268,39 +272,36 @@ EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, t
       return;
     }
 
-    EthereumBlockMysqlModel.getOrSave(block)
-    .then(json => {
-      const array = [];
-      const promises = [];
+    const array = [];
+    const promises = [];
 
-      txs.forEach(transaction => {
-        promises.push(new Promise((resolve, reject) => {
-          EthereumAddressMysqlModel.getOrSave(transaction.from)
-          .then(from_json => {
-            if(transaction.from != from_json.address) console.log("ERROR "+transaction.from +" "+from_json.address, from_json);
-            EthereumAddressMysqlModel.getOrSave(transaction.to)
-            .then(to_json => {
-              if(transaction.to != to_json.address) console.log("ERROR "+transaction.to +" "+to_json.address, to_json);
-              const tx = txToArrayForInsert(transaction, from_json.id, to_json.id);
-              resolve(tx);
-            });
-          })
-        }));
+    txs.forEach(transaction => {
+      promises.push(new Promise((resolve, reject) => {
+        EthereumAddressMysqlModel.getOrSave(transaction.from)
+        .then(from_json => {
+          if(transaction.from != from_json.address) console.log("ERROR "+transaction.from +" "+from_json.address, from_json);
+          EthereumAddressMysqlModel.getOrSave(transaction.to)
+          .then(to_json => {
+            if(transaction.to != to_json.address) console.log("ERROR "+transaction.to +" "+to_json.address, to_json);
+            const tx = txToArrayForInsert(transaction, from_json.id, to_json.id);
+            resolve(tx);
+          });
+        })
+      }));
+    });
+
+    Promise.all(promises)
+    .then(results => {
+      connection.query(createInsertRowsForTable(table), [results], (error, results, fields) => {
+        if(error && error.code !== "ER_DUP_ENTRY") {
+          console.log(error);
+          console.log(results);
+          console.log(fields);
+          reject(error);
+        } else {
+          resolve(txs);
+        }
       });
-
-      Promise.all(promises)
-      .then(results => {
-        connection.query(createInsertRowsForTable(table), [results], (error, results, fields) => {
-          if(error && error.code !== "ER_DUP_ENTRY") {
-            console.log(error);
-            console.log(results);
-            console.log(fields);
-            reject(error);
-          } else {
-            resolve(txs);
-          }
-        });
-      })
     })
     .catch(err => {
       console.log(err);
@@ -379,29 +380,29 @@ EthereumTransactionMysqlModel.prototype.lastBlockNumber = function(table) {
 
 EthereumTransactionMysqlModel.prototype.systemDataAsJson = function() {
   return new Promise((resolve, reject) => {
-      const read = [];
-      connection.system_tables.forEach((system_table) => {
-        read.push(this.lastBlockNumber(system_table));
-        read.push(this.countInTable(system_table));
-      });
-
-      Promise.all(read)
-      .then(results => {
-        console.log("results :=", results);
-        const to_send = [];
-        for(var i = 0 ; i<results.length/2; i++) {
-          to_send.push({
-            table: connection.system_tables[i],
-            lastBlockNumber: results[i*2],
-            countTx: results[i*2+1]
-          });
-        }
-        resolve(to_send);
-      })
-      .catch(err => {
-        reject(err);
-      });
+    const read = [];
+    connection.system_tables.forEach((system_table) => {
+      read.push(this.lastBlockNumber(system_table));
+      read.push(this.countInTable(system_table));
     });
+
+    Promise.all(read)
+    .then(results => {
+      console.log("results :=", results);
+      const to_send = [];
+      for(var i = 0 ; i<results.length/2; i++) {
+        to_send.push({
+          table: connection.system_tables[i],
+          lastBlockNumber: results[i*2],
+          countTx: results[i*2+1]
+        });
+      }
+      resolve(to_send);
+    })
+    .catch(err => {
+      reject(err);
+    });
+  });
 }
 
 module.exports = new EthereumTransactionMysqlModel();
