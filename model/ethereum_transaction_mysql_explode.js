@@ -212,11 +212,6 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
       const table_from = tableFromAddress(tx.from);
       var table_to = tableFromAddress(tx.to);
 
-      if(table_to == table_from) {
-        //for instance we have 0xEB..C.. sending to 0xEB..A..
-        table_to = undefined;
-      }
-
       if(!array[standard]) {
         array[standard] = [];
         tables.push(standard);
@@ -234,8 +229,11 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
       }
 
       if(table_to) {
-
-        if(tx.from != tx.to) {
+        //for instance we have 0xABER sending to 0xABER
+        //or
+        //for instance we have 0xEB..C.. sending to 0xEB..A..
+        //we avoid saving it in the same table
+        if(tx.from != tx.to && table_to != table_from) {
           if(!array[table_to]) {
             array[table_to] = [];
             tables.push(table_to);
