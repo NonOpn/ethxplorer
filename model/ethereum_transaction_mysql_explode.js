@@ -21,7 +21,7 @@ function tableFromAddress(address) {
 
 function createInsertRowsForTable(table) {
   var columns = COLUMNS.map((col) => { return "`"+col+"`"; });
-  return "INSERT INTO "+table+" ("+columns.join(",")+") VALUES ? ";
+  return "INSERT IGNORE INTO "+table+" ("+columns.join(",")+") VALUES ? ";
 }
 
 function createInsertRows(address) {
@@ -122,6 +122,12 @@ EthereumTransactionMysqlModel.prototype.filter = function(tx) {
   });
 }
 
+EthereumTransactionMysqlModel.prototype.toJson = function(tx) {
+  return new Promise((resolve, reject) => {
+    resolve(txToJson(tx));
+  });
+}
+
 EthereumTransactionMysqlModel.prototype.get = function(tx) {
   return new Promise((resolve, reject) => {
     connection.query(selectColumns()+" WHERE hash = ? ", [tx.hash],  (error, results, fields) => {
@@ -202,6 +208,88 @@ EthereumTransactionMysqlModel.prototype.withAddress = function(address, blockNum
   });
 }
 
+EthereumTransactionMysqlModel.prototype.getMergeable = function(txs, block) {
+  return new Promise((resolve, reject) => {
+    const array = [];
+    const tables = [];
+
+    txs.forEach(tx => {
+      const standard = tableFromAddress(undefined);
+      const table_from = tableFromAddress(tx.from);
+      const table_to = tableFromAddress(tx.to);
+
+      if(!array[standard]) {
+        array[standard] = [];
+        tables.push(standard);
+      }
+      array[standard].push(tx);
+
+      if(table_from) {
+        if(!array[table_from]) {
+          array[table_from] = [];
+          tables.push(table_from);
+        }
+        array[table_from].push(tx);
+      } else {
+        throw "undefined table_from "+tx.hash;
+      }
+
+      if(table_to) {
+        //for instance we have 0xABER sending to 0xABER
+        //or
+        //for instance we have 0xEB..C.. sending to 0xEB..A..
+        //we avoid saving it in the same table
+        if(tx.from != tx.to && table_to != table_from) {
+          if(!array[table_to]) {
+            array[table_to] = [];
+            tables.push(table_to);
+          }
+          array[table_to].push(tx);
+        }
+      } else {
+        throw "undefined table_to "+tx.hash;
+      }
+    });
+
+    EthereumBlockMysqlModel.getOrSave(block)
+    .then(json => {
+      console.log("having infos #block", tables.length);
+
+      resolve({
+        tables: tables,
+        array: array
+      });
+    })
+  })
+}
+
+EthereumTransactionMysqlModel.prototype.saveMergeable = function(output) {
+  //output = {
+  //    tables: [ "Transaction", ... ]
+  //    array: [array of table:tables]
+  //  }
+  return new Promise((resolve, reject) => {
+    const tables = output.tables;
+    const array = output.array;
+
+    const table_promise = [];
+    tables.forEach(table => {
+      table_promise.push(this.saveMultipleForTable(table, array[table]));
+    });
+
+    //saved block, no manage transactions
+    Promise.all(table_promise)
+    .then(results => {
+      console.log("saved in #" + tables.length + " tables");
+      resolve(results);
+    })
+    .catch(err => {
+      console.log(err);
+    })
+  });
+}
+
+
 EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
   return new Promise((resolve, reject) => {
     const array = [];
@@ -264,7 +352,7 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
   })
 }
 
-EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, txs, json/*block*/) {
+EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, txs/*, json*//*block*/) {
   return new Promise((resolve, reject) => {
 
     if(!txs || txs.length == 0) {

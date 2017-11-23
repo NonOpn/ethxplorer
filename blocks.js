@@ -93,11 +93,13 @@ Blocks.prototype.fetchBlockRetrieveTransactions = function(block_number, end) {
 
     this.fetchBlock(block_number)
     .then(block => {
-      if (block.transactions != null && block.transactions.length > 0) {
+      if (block && block.transactions && block.transactions.length > 0) {
         const promises = [];
 
         block.transactions.forEach(tx => {
-          promises.push(ethereum_transaction.filter(tx));
+          promises.push(ethereum_transaction.toJson(tx));
+          //no filter since we have unique tx hash
+          //promises.push(ethereum_transaction.filter(tx));
         });
 
         Promise.all(promises)
@@ -137,7 +139,7 @@ Blocks.prototype.fetchBlock = function(block_number) {
     }, config.timeout_block);
 
     this._provider.getBlock(block_number, true)
-    .then((block) => {
+    .then(block => {
       finished = true;
       if(canceled) { return; }
       if(block) resolve(block);
@@ -166,12 +168,18 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
 
       Promise.all(promises)
       .then(arraysOrBlockTransactions => {
+
+        const output = {
+          tables: [],
+           array: []
+        };
+
         const callback = (i) => {
           if(i < arraysOrBlockTransactions.length) {
             const block = arraysOrBlockTransactions[i].block;
             //block.blockNumber = Number(block.blockNumber);
             const transactions = arraysOrBlockTransactions[i].transactions;
-            ethereum_transaction.saveMultiple(transactions, block)
+            /*ethereum_transaction.saveMultiple(transactions, block)
             .then(txs => {
               if(txs && txs.length > 0) {
                 console.log(`block ${block.number} saved ${transactions.length} in ${txs.length} tables`);
@@ -181,10 +189,36 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
             })
             .catch(err => {
               console.log(`block ${block.number} saved ${transactions.length} ERROR`, err);
-            });
+            });*/
+
+            ethereum_transaction.getMergeable(transactions, block)
+            .then(object => {
+              object.tables.forEach(table => {
+                if(!output.array[table]) {
+                  output.array[table] = [];
+                  output.tables.push(table);
+                }
+                object.array[table].forEach(transaction => {
+                  output.array[table].push(transaction);
+                })
+              });
+
+              callback(i+1);
+            })
+            .catch(err => {
+              reject(err);
+            })
           } else {
             console.log(`finished`);
-            resolve(startBlockNumber);
+
+            ethereum_transaction.saveMergeable(output)
+            .then(result => {
+              //console.log(result);
+              resolve(startBlockNumber);
+            })
+            .catch(err => {
+              console.log(err);
+            })
           }
         }
 
