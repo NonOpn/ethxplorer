@@ -15,6 +15,15 @@ var connection = mysql.createConnection({
 
 connection.connect();
 
+var pool = mysql.createPool({
+    connectionLimit: 15,
+    host     : config.mysql.host,
+    user     : config.mysql.user,
+    password : config.mysql.password,
+    database : config.mysql.database,
+    debug: false
+});
+
 const CREATE_TABLE_ADDRESS = "CREATE TABLE IF NOT EXISTS Address ("
 +"`id` BIGINT NOT NULL AUTO_INCREMENT,"
 +"`address` VARCHAR(60) NOT NULL," //ethereum addresses are 20 bytes longs > 40 char bytes + 2 char bytes (0 + x)
@@ -119,5 +128,6 @@ connection.init = function() {
 }
 
 connection.system_tables = _system_tables;
+connection.pool = pool;
 
 module.exports = connection;

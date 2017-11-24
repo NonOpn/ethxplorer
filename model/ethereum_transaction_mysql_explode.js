@@ -6,6 +6,8 @@ EthereumAddressMysqlModel = require("./ethereum_address_mysql"),
 EthereumBlockMysqlModel = require("./ethereum_block_mysql"),
 connection = require("../database/init");
 
+const pool = connection.pool;
+
 
 const ETHEREUM_ADDRESS_TX = "Transaction";
 const COLUMNS = ["blockNumber","from","gas","gasPrice", "hash", "input", "nonce", "to", "value", "input_hashcode"];
@@ -269,6 +271,8 @@ EthereumTransactionMysqlModel.prototype.saveMergeable = function(output) {
   //    array: [array of table:tables]
   //  }
   return new Promise((resolve, reject) => {
+
+    var hrstart = process.hrtime();
     const tables = output.tables;
     const array = output.array;
 
@@ -280,7 +284,8 @@ EthereumTransactionMysqlModel.prototype.saveMergeable = function(output) {
     //saved block, no manage transactions
     Promise.all(table_promise)
     .then(results => {
-      console.log("saved in #" + tables.length + " tables");
+      hrend = process.hrtime(hrstart);
+      console.log("saved in #%d tables %ds %dms", tables.length, hrend[0], hrend[1]/1000000);
       resolve(results);
     })
     .catch(err => {
@@ -380,16 +385,20 @@ EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, t
 
     Promise.all(promises)
     .then(results => {
-      connection.query(createInsertRowsForTable(table), [results], (error, results, fields) => {
-        if(error && error.code !== "ER_DUP_ENTRY") {
-          console.log(error);
-          console.log(results);
-          console.log(fields);
-          reject(error);
-        } else {
-          resolve(txs);
-        }
-      });
+      pool.getConnection((err, connection) => {
+        if(err) console.log(err);
+        connection.query(createInsertRowsForTable(table), [results], (error, results, fields) => {
+          connection.release();
+          if(error && error.code !== "ER_DUP_ENTRY") {
+            console.log(error);
+            console.log(results);
+            console.log(fields);
+            reject(error);
+          } else {
+            resolve(txs);
+          }
+        });
+      })
     })
     .catch(err => {
       console.log(err);
