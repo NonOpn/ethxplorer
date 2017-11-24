@@ -179,7 +179,7 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
             const block = arraysOrBlockTransactions[i].block;
             //block.blockNumber = Number(block.blockNumber);
             const transactions = arraysOrBlockTransactions[i].transactions;
-            /*ethereum_transaction.saveMultiple(transactions, block)
+            ethereum_transaction.saveMultiple(transactions, block)
             .then(txs => {
               if(txs && txs.length > 0) {
                 console.log(`block ${block.number} saved ${transactions.length} in ${txs.length} tables`);
@@ -189,9 +189,9 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
             })
             .catch(err => {
               console.log(`block ${block.number} saved ${transactions.length} ERROR`, err);
-            });*/
+            });
 
-            ethereum_transaction.getMergeable(transactions, block)
+            /*ethereum_transaction.getMergeable(transactions, block)
             .then(object => {
               object.tables.forEach(table => {
                 if(!output.array[table]) {
@@ -207,18 +207,19 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
             })
             .catch(err => {
               reject(err);
-            })
+            })*/
           } else {
             console.log(`finished`);
+            resolve(startBlockNumber);
 
-            ethereum_transaction.saveMergeable(output)
+            /*ethereum_transaction.saveMergeable(output)
             .then(result => {
               //console.log(result);
               resolve(startBlockNumber);
             })
             .catch(err => {
               console.log(err);
-            })
+            })*/
           }
         }
 
