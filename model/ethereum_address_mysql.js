@@ -5,7 +5,8 @@ murmurHash = require('murmurhash-native').murmurHash,
 connection = require("../database/init");
 const NodeCache = require("node-cache");
 
-const CACHE = new NodeCache( { stdTTL: 100, checkperiod: 120 } );
+const pool = connection.pool;
+const CACHE = new NodeCache( { stdTTL: 10000, checkperiod: 120 } );
 
 const COLUMNS = ["address"];
 
@@ -107,43 +108,50 @@ EthereumAddressMysqlModel.prototype.get = function(address) {
       return;
     }
 
-    connection.query(selectColumns()+" WHERE address = ? ", [address],  (error, results, fields) => {
-      if(error) {
-        reject(error);
-        return;
-      }
-      if(results && results.length > 0) {
-        const json = rowToJson(results[0]);
-        CACHE.set(json.id, json);
-        CACHE.set(json.address, json);
-        resolve(json);
-      } else {
-        resolve(undefined);
-      }
+    pool.getConnection((err, connection) => {
+      if(err) console.log(err);
+      connection.query(selectColumns()+" WHERE address = ? ", [address],  (error, results, fields) => {
+        connection.release();
+        if(error) {
+          reject(error);
+          return;
+        }
+        if(results && results.length > 0) {
+          const json = rowToJson(results[0]);
+          CACHE.set(json.id, json);
+          CACHE.set(json.address, json);
+          resolve(json);
+        } else {
+          resolve(undefined);
+        }
+      });
     });
   });
 }
 
 EthereumAddressMysqlModel.prototype.save = function(address) {
   return new Promise((resolve, reject) => {
-    connection.query("INSERT INTO Address (`address`) VALUES (?)", [address], (error, results, fields) => {
-      if(error) {
-        if(error.code == "ER_DUP_ENTRY") {
-          this.get(address)
-          .then(json => resolve(json))
-          .catch(err => reject(err));
+    pool.getConnection((err, connection) => {
+      connection.query("INSERT INTO Address (`address`) VALUES (?)", [address], (error, results, fields) => {
+        connection.release();
+        if(error) {
+          if(error.code == "ER_DUP_ENTRY") {
+            this.get(address)
+            .then(json => resolve(json))
+            .catch(err => reject(err));
+          } else {
+            reject(error);
+          }
         } else {
-          reject(error);
+          const json = {
+            id: results.insertId,
+            address: address
+          }
+          CACHE.set(json.id, json);
+          CACHE.set(json.address, json);
+          resolve(json);
         }
-      } else {
-        const json = {
-          id: results.insertId,
-          address: address
-        }
-        CACHE.set(json.id, json);
-        CACHE.set(json.address, json);
-        resolve(json);
-      }
+      });
     });
   });
 }
