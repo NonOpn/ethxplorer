@@ -179,9 +179,9 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
         const callback = (i) => {
           if(i < arraysOrBlockTransactions.length) {
             const block = arraysOrBlockTransactions[i].block;
-            //block.blockNumber = Number(block.blockNumber);
             const transactions = arraysOrBlockTransactions[i].transactions;
-            ethereum_transaction.saveMultiple(transactions, block)
+
+            /*ethereum_transaction.saveMultiple(transactions, block)
             .then(txs => {
               if(txs && txs.length > 0) {
                 console.log(`block ${block.number} saved ${transactions.length} in ${txs.length} tables`);
@@ -191,9 +191,9 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
             })
             .catch(err => {
               console.log(`block ${block.number} saved ${transactions.length} ERROR`, err);
-            });
+            });*/
 
-            /*ethereum_transaction.getMergeable(transactions, block)
+            ethereum_transaction.getMergeable(transactions, block)
             .then(object => {
               object.tables.forEach(table => {
                 if(!output.array[table]) {
@@ -209,21 +209,22 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
             })
             .catch(err => {
               reject(err);
-            })*/
+            })
           } else {
-            hrend = process.hrtime(hrstart);
+            /*hrend = process.hrtime(hrstart);
             console.log("finished in %d.%ds", hrend[0], Math.floor(hrend[1]/1000000));
             console.log(`finished`);
-            resolve(startBlockNumber);
+            resolve(startBlockNumber);*/
 
-            /*ethereum_transaction.saveMergeable(output)
+            ethereum_transaction.saveMergeable(output)
             .then(result => {
-              //console.log(result);
+                          hrend = process.hrtime(hrstart);
+                        console.log("finished in %d.%ds", hrend[0], Math.floor(hrend[1]/1000000));
               resolve(startBlockNumber);
             })
             .catch(err => {
               console.log(err);
-            })*/
+            })
           }
         }
 
