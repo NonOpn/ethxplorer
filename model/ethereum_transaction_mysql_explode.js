@@ -256,8 +256,6 @@ EthereumTransactionMysqlModel.prototype.getMergeable = function(txs, block) {
 
     EthereumBlockMysqlModel.getOrSave(block)
     .then(json => {
-      console.log("having infos #block", tables.length);
-
       resolve({
         tables: tables,
         array: array
@@ -272,8 +270,6 @@ EthereumTransactionMysqlModel.prototype.saveMergeable = function(output) {
   //    array: [array of table:tables]
   //  }
   return new Promise((resolve, reject) => {
-
-    var hrstart = process.hrtime();
     const tables = output.tables;
     const array = output.array;
 
@@ -285,8 +281,6 @@ EthereumTransactionMysqlModel.prototype.saveMergeable = function(output) {
     //saved block, no manage transactions
     Promise.all(table_promise)
     .then(results => {
-      hrend = process.hrtime(hrstart);
-      console.log("saved in #%d tables %ds %dms", tables.length, hrend[0], hrend[1]/1000000);
       resolve(results);
     })
     .catch(err => {
