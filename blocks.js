@@ -180,18 +180,6 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
             const block = arraysOrBlockTransactions[i].block;
             const transactions = arraysOrBlockTransactions[i].transactions;
 
-            /*ethereum_transaction.saveMultiple(transactions, block)
-            .then(txs => {
-              if(txs && txs.length > 0) {
-                console.log(`block ${block.number} saved ${transactions.length} in ${txs.length} tables`);
-              }
-              //iterate on the next to save - do not use Promise.all since not sure MySQL save won't be parallel in future
-              callback( i + 1 );
-            })
-            .catch(err => {
-              console.log(`block ${block.number} saved ${transactions.length} ERROR`, err);
-            });*/
-
             ethereum_transaction.getMergeable(transactions, block)
             .then(object => {
               object.tables.forEach(table => {
@@ -210,11 +198,6 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
               reject(err);
             })
           } else {
-            /*hrend = process.hrtime(hrstart);
-            console.log("finished in %d.%ds", hrend[0], Math.floor(hrend[1]/1000000));
-            console.log(`finished`);
-            resolve(startBlockNumber);*/
-
             ethereum_transaction.saveMergeable(output)
             .then(result => {
               const factor = 1000000;
