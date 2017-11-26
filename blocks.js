@@ -98,8 +98,6 @@ Blocks.prototype.fetchBlockRetrieveTransactions = function(block_number, end) {
 
         block.transactions.forEach(tx => {
           promises.push(ethereum_transaction.toJson(tx));
-          //no filter since we have unique tx hash
-          //promises.push(ethereum_transaction.filter(tx));
         });
 
         Promise.all(promises)
@@ -155,6 +153,7 @@ Blocks.prototype.fetchBlock = function(block_number) {
 
 Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlockNumber) {
   return new Promise((resolve, reject) => {
+    var whole_start = process.hrtime();
     console.log(`from #${startBlockNumber} to #${endBlockNumber}`);
     if(startBlockNumber < endBlockNumber) {
       const begin_block = startBlockNumber;
@@ -218,8 +217,13 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
 
             ethereum_transaction.saveMergeable(output)
             .then(result => {
-                          hrend = process.hrtime(hrstart);
-                        console.log("finished in %d.%ds", hrend[0], Math.floor(hrend[1]/1000000));
+              const factor = 1000000;
+              const retr_end = process.hrtime(whole_start);
+              const save_end = process.hrtime(hrstart);
+              const whole_out = retr_end[0]+"."+Math.floor(retr_end[1]/factor);
+              const save_out = save_end[0]+"."+Math.floor(save_end[1]/factor);
+
+              console.log(`finished ${whole_out} / ${save_out}`);
               resolve(startBlockNumber);
             })
             .catch(err => {
