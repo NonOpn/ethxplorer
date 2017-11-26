@@ -4,7 +4,8 @@ config = require("../configs/blocks.js"),
 murmurHash = require('murmurhash-native').murmurHash,
 EthereumAddressMysqlModel = require("./ethereum_address_mysql"),
 EthereumBlockMysqlModel = require("./ethereum_block_mysql"),
-connection = require("../database/init");
+connection = require("../database/init"),
+Base64 = require("../base64.js");
 
 const pool = connection.pool;
 
@@ -68,7 +69,7 @@ function txToArrayForInsert(tx, from, to) {
     tx.gas,
     tx.gasPrice,
     tx.hash,
-    tx.input,
+    Base64.from0x(tx.input),
     tx.nonce,
     to, //tx.to = address // to = id
     tx.value,
