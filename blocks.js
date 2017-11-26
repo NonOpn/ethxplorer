@@ -168,6 +168,8 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
 
       Promise.all(promises)
       .then(arraysOrBlockTransactions => {
+        var hrstart = process.hrtime();
+
 
         const output = {
           tables: [],
@@ -209,6 +211,8 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
               reject(err);
             })*/
           } else {
+            hrend = process.hrtime(hrstart);
+            console.log("finished in %d.%ds", hrend[0], Math.floor(hrend[1]/1000000));
             console.log(`finished`);
             resolve(startBlockNumber);
 
