@@ -16,12 +16,12 @@ var connection = mysql.createConnection({
 connection.connect();
 
 var pool = mysql.createPool({
-    connectionLimit: 60,
-    host     : config.mysql.host,
-    user     : config.mysql.user,
-    password : config.mysql.password,
-    database : config.mysql.database,
-    debug: false
+  connectionLimit: 60,
+  host     : config.mysql.host,
+  user     : config.mysql.user,
+  password : config.mysql.password,
+  database : config.mysql.database,
+  debug: false
 });
 
 const CREATE_TABLE_ADDRESS = "CREATE TABLE IF NOT EXISTS Address ("
@@ -82,58 +82,66 @@ function getTransactionTableCreationRequest(suffix) {
     +")ENGINE=MyISAM;";
   }
 
+  const letters = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
 
-connection.prefix_size = 3;
-
-connection.init = function() {
-  return new Promise((resolve, reject) => {
-    connection.query(CREATE_TABLE_ADDRESS, function(err, results, fields) {
-      console.log("table creation finished", err);
-      connection.query(CREATE_TABLE_BLOCK, function(err, results, fields) {
-        console.log("table creation finished", err);
-
-        const promises = [];
-        const letters = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
-
-        const tables = [];
-        letters.forEach(letter => {
-          letters.forEach(letter2 => {
-            letters.forEach(letter3 => {
-              tables.push("_"+letter+""+letter2+""+letter3);
-            })
-          })
-        });
-        tables.push("_"); //Transaction_
-
-
-        tables.forEach(table => {
-          console.log("executing for table "+ table + " " + table.length);
-          _system_tables.push("Transaction"+table);
-          promises.push(new Promise((resolve, reject) => {
-            connection.query(getTransactionTableCreationRequest(table), function(err, results, fields) {
-              if(err) reject(err);
-              else resolve(results);
-            });
-          }));
-        });
-
-        Promise.all(promises)
-        .then(results => {
-          connection._init = true;
-          resolve(results);
-        })
-        .catch(err => {
-          reject(err);
-          console.log("error", err);
-        });
-
-      });
+  function append(array, remaining) {
+    if(remaining <= 1) {
+      return array;
+    }
+    const sub_result = append(array, remaining - 1);
+    var result = [];
+    array.forEach(letter => {
+      sub_result.forEach(substr => {
+        result.push(substr + "" + letter);
+      })
     });
 
-  });
-}
+    return result;
+  }
 
-connection.system_tables = _system_tables;
-connection.pool = pool;
+  connection.prefix_size = 2;
 
-module.exports = connection;
+  connection.init = function() {
+    return new Promise((resolve, reject) => {
+      connection.query(CREATE_TABLE_ADDRESS, function(err, results, fields) {
+        console.log("table creation finished", err);
+        connection.query(CREATE_TABLE_BLOCK, function(err, results, fields) {
+          console.log("table creation finished", err);
+
+          const promises = [];
+
+          const tables = append(letters, connection.prefix_size);
+          tables.push("_"); //Transaction_
+
+
+          tables.forEach(table => {
+            console.log("executing for table "+ table + " " + table.length);
+            _system_tables.push("Transaction"+table);
+            promises.push(new Promise((resolve, reject) => {
+              connection.query(getTransactionTableCreationRequest(table), function(err, results, fields) {
+                if(err) reject(err);
+                else resolve(results);
+              });
+            }));
+          });
+
+          Promise.all(promises)
+          .then(results => {
+            connection._init = true;
+            resolve(results);
+          })
+          .catch(err => {
+            reject(err);
+            console.log("error", err);
+          });
+
+        });
+      });
+
+    });
+  }
+
+  connection.system_tables = _system_tables;
+  connection.pool = pool;
+
+  module.exports = connection;
