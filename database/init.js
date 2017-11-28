@@ -16,7 +16,7 @@ var connection = mysql.createConnection({
 connection.connect();
 
 var pool = mysql.createPool({
-    connectionLimit: 15,
+    connectionLimit: 100,
     host     : config.mysql.host,
     user     : config.mysql.user,
     password : config.mysql.password,
@@ -52,7 +52,11 @@ function getTruncableTableRequest(suffix) {
   return "TRUNCATE TABLE Transaction"+suffix;
 }
 
-function getTransactionTableRequest(suffix) {
+function getTransactionTableDropRequest(suffix) {
+  return "DROP TABLE Transaction"+suffix;
+}
+
+function getTransactionTableCreationRequest(suffix) {
   return `CREATE TABLE IF NOT EXISTS Transaction${suffix} (`
     +"`id` BIGINT NOT NULL AUTO_INCREMENT,"
     +"`blockNumber` BIGINT NOT NULL,"
@@ -70,11 +74,12 @@ function getTransactionTableRequest(suffix) {
     +"KEY `blockNumber` (`blockNumber`),"
     +"KEY `from` (`from`),"
     +"KEY `to` (`to`),"
-    +"KEY `input_hashcode` (`input_hashcode`),"
-    +"CONSTRAINT FK_from_T"+suffix+" FOREIGN KEY (`from`) REFERENCES `Address` (`id`),"
-    +"CONSTRAINT FK_to_T"+suffix+" FOREIGN KEY (`to`) REFERENCES `Address` (`id`),"
-    +"CONSTRAINT FK_blockNumber_T"+suffix+" FOREIGN KEY (`blockNumber`) REFERENCES `Block` (`id`)"
-    +")ENGINE=InnoDB;";
+    +"KEY `input_hashcode` (`input_hashcode`)"//+","
+    //+"CONSTRAINT FK_from_T"+suffix+" FOREIGN KEY (`from`) REFERENCES `Address` (`id`),"
+    //+"CONSTRAINT FK_to_T"+suffix+" FOREIGN KEY (`to`) REFERENCES `Address` (`id`),"
+    //+"CONSTRAINT FK_blockNumber_T"+suffix+" FOREIGN KEY (`blockNumber`) REFERENCES `Block` (`id`)"
+    //+")ENGINE=InnoDB;";
+    +")ENGINE=MyISAM;";
   }
 
 
@@ -92,18 +97,18 @@ connection.init = function() {
         letters.forEach(letter => {
           letters.forEach(letter2 => {
             //letters.forEach(letter3 => {
-              tables.push(letter+""+letter2);//+""+letter3);
+              tables.push("_"+letter+""+letter2);//+""+letter3);
             //})
           })
         });
-        tables.push("");
+        tables.push("_"); //Transaction_
 
 
         tables.forEach(table => {
           console.log("executing for table "+ table + " " + table.length);
           _system_tables.push("Transaction"+table);
           promises.push(new Promise((resolve, reject) => {
-            connection.query(getTransactionTableRequest(table), function(err, results, fields) {
+            connection.query(getTransactionTableCreationRequest(table), function(err, results, fields) {
               if(err) reject(err);
               else resolve(results);
             });
@@ -114,7 +119,6 @@ connection.init = function() {
         .then(results => {
           connection._init = true;
           resolve(results);
-          console.log(results);
         })
         .catch(err => {
           reject(err);

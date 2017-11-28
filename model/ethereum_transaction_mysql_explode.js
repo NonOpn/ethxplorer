@@ -11,15 +11,17 @@ const pool = connection.pool;
 
 
 const ETHEREUM_ADDRESS_TX = "Transaction";
+const TRANSACTION = "Transaction_";
+
 const COLUMNS = ["blockNumber","from","gas","gasPrice", "hash", "input", "nonce", "to", "value", "input_hashcode"];
 const COLUMNS_NO_FOREIGN = ["blockNumber","gas","gasPrice", "hash", "input", "nonce", "value", "input_hashcode"];
 
 
 function tableFromAddress(address) {
-  if(!address || address.length < 6) return "Transaction";
+  if(!address || address.length < 6) return TRANSACTION;
 
   address = address.toLowerCase();
-  return "Transaction" + address.substr((address.indexOf("0x") == 0) ? 2 : 0, 2).toUpperCase();
+  return TRANSACTION + address.substr((address.indexOf("0x") == 0) ? 2 : 0, 2).toUpperCase();
 }
 
 function createInsertRowsForTable(table) {
@@ -452,7 +454,7 @@ EthereumTransactionMysqlModel.prototype.countInTable = function(table) {
 
 EthereumTransactionMysqlModel.prototype.lastBlockNumber = function(table) {
   return new Promise((resolve, reject) => {
-    if(!table) table = "Transaction";
+    if(!table) table = TRANSACTION;
     console.log("lastBlockNumber", table);
     const query = "SELECT MAX(blockNumber) as c FROM "+table;
     console.log(query);
