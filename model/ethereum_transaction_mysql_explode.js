@@ -21,7 +21,7 @@ function tableFromAddress(address) {
   if(!address || address.length < 6) return TRANSACTION;
 
   address = address.toLowerCase();
-  return TRANSACTION + address.substr((address.indexOf("0x") == 0) ? 2 : 0, 2).toUpperCase();
+  return TRANSACTION + address.substr((address.indexOf("0x") == 0) ? 2 : 0, connection.prefix_size).toUpperCase();
 }
 
 function createInsertRowsForTable(table) {

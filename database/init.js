@@ -16,7 +16,7 @@ var connection = mysql.createConnection({
 connection.connect();
 
 var pool = mysql.createPool({
-    connectionLimit: 100,
+    connectionLimit: 60,
     host     : config.mysql.host,
     user     : config.mysql.user,
     password : config.mysql.password,
@@ -83,6 +83,8 @@ function getTransactionTableCreationRequest(suffix) {
   }
 
 
+connection.prefix_size = 3;
+
 connection.init = function() {
   return new Promise((resolve, reject) => {
     connection.query(CREATE_TABLE_ADDRESS, function(err, results, fields) {
@@ -96,9 +98,9 @@ connection.init = function() {
         const tables = [];
         letters.forEach(letter => {
           letters.forEach(letter2 => {
-            //letters.forEach(letter3 => {
-              tables.push("_"+letter+""+letter2);//+""+letter3);
-            //})
+            letters.forEach(letter3 => {
+              tables.push("_"+letter+""+letter2+""+letter3);
+            })
           })
         });
         tables.push("_"); //Transaction_
