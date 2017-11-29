@@ -43,11 +43,11 @@ Blocks.prototype.getLastBlockManaged = function() {
     console.log("getLastBlockManaged");
       ethereum_transaction.lastBlockNumber()
       .then(lastBlockNumber => {
+        console.log(lastBlockNumber);
         if(lastBlockNumber < 46000) lastBlockNumber = 46000;
         resolve(lastBlockNumber);
       })
       .catch(err => {
-
       });
   });
 }
@@ -55,6 +55,7 @@ Blocks.prototype.getLastBlockManaged = function() {
 Blocks.prototype.start = function(retry_every_seconds) {
   setInterval(() => {
     if(!this.isStarted()) {
+      this._is_started = true;
       this.getLastBlockManaged()
       .then(last_block => {
         this.internalStart(last_block);
@@ -63,19 +64,19 @@ Blocks.prototype.start = function(retry_every_seconds) {
         console.log(err);
       })
     }
-  }, retry_every_seconds);
+  }, retry_every_seconds * 1000);
 }
 
 Blocks.prototype.isStarted = function() {
   return this._is_started;
 }
 
-Blocks.prototype.internalStart = function(first_block) {
-  if(!this._is_started) {
+Blocks.prototype.internalStart = function(first_block, force) {
     this._is_started = true;
 
     this._provider.getBlockNumber()
     .then(blockNumber => {
+      console.log("blockNumber", blockNumber);
       blockNumber -= SAFE_BLOCK_DELTA_HEIGHT;
       if(first_block + 100000 < blockNumber) {
         blockNumber = first_block + 100000;
@@ -84,8 +85,8 @@ Blocks.prototype.internalStart = function(first_block) {
     })
     .catch(err => {
       this._is_started = false;
+      console.log(err);
     });
-  }
 }
 
 Blocks.prototype.fetchBlockRetrieveTransactions = function(block_number, end) {
