@@ -78,8 +78,8 @@ Blocks.prototype.internalStart = function(first_block, force) {
     .then(blockNumber => {
       console.log("blockNumber", blockNumber);
       blockNumber -= SAFE_BLOCK_DELTA_HEIGHT;
-      if(first_block + 100000 < blockNumber) {
-        blockNumber = first_block + 100000;
+      if(first_block + 10000 < blockNumber) {
+        blockNumber = first_block + 10000;
       }
       this._internal_event.emit("current_batch", first_block, blockNumber);
     })
