@@ -497,9 +497,10 @@ EthereumTransactionMysqlModel.prototype.systemDataAsJson = function() {
       var countTx = 0;
       const to_send = [];
       for(var i = 0 ; i<results.length/2; i++) {
-        if(lastBlockNumber > maxLastBlockNumber) {
-          maxLastBlockNumber = lastBlockNumber;
+        if(results[i*2] > maxLastBlockNumber) {
+          maxLastBlockNumber = results[i*2];
         }
+        countTx += results[i*2+1];
         //to_send.push({
         //  table: connection.system_tables[i],
         //  lastBlockNumber: results[i*2],
@@ -508,7 +509,8 @@ EthereumTransactionMysqlModel.prototype.systemDataAsJson = function() {
       }
       //resolve(to_send);
       resolve({
-        block: maxLastBlockNumber
+        block: maxLastBlockNumber,
+        approx_tx: countTx/2
       });
     })
     .catch(err => {
