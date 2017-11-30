@@ -19,7 +19,7 @@ const COLUMNS_NO_FOREIGN = ["blockNumber","gas","gasPrice", "hash", "input", "no
 
 
 function tableFromAddress(address) {
-  if(!address || address.length < 6) return TRANSACTION;
+  if(!address || address.length < 6) return TRANSACTION+"00";
 
   address = address.toLowerCase();
   return TRANSACTION + address.substr((address.indexOf("0x") == 0) ? 2 : 0, connection.prefix_size).toUpperCase();
@@ -493,15 +493,23 @@ EthereumTransactionMysqlModel.prototype.systemDataAsJson = function() {
     Promise.all(read)
     .then(results => {
       console.log("results :=", results);
+      var maxLastBlockNumber = 0;
+      var countTx = 0;
       const to_send = [];
       for(var i = 0 ; i<results.length/2; i++) {
-        to_send.push({
-          table: connection.system_tables[i],
-          lastBlockNumber: results[i*2],
-          countTx: results[i*2+1]
-        });
+        if(lastBlockNumber > maxLastBlockNumber) {
+          maxLastBlockNumber = lastBlockNumber;
+        }
+        //to_send.push({
+        //  table: connection.system_tables[i],
+        //  lastBlockNumber: results[i*2],
+        //  countTx: results[i*2+1]
+        //});
       }
-      resolve(to_send);
+      //resolve(to_send);
+      resolve({
+        block: maxLastBlockNumber
+      });
     })
     .catch(err => {
       reject(err);
