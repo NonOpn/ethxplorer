@@ -16,7 +16,7 @@ var connection = mysql.createConnection({
 connection.connect();
 
 var pool = mysql.createPool({
-  connectionLimit: 60,
+  connectionLimit: 20,
   host     : config.mysql.host,
   user     : config.mysql.user,
   password : config.mysql.password,
@@ -29,7 +29,7 @@ const CREATE_TABLE_ADDRESS = "CREATE TABLE IF NOT EXISTS Address ("
 +"`address` VARCHAR(60) NOT NULL," //ethereum addresses are 20 bytes longs > 40 char bytes + 2 char bytes (0 + x)
 +"PRIMARY KEY `id` (`id`),"
 +"UNIQUE KEY `address` (`address`)"
-+")ENGINE=InnoDB;";
++")ENGINE=MyISAM;";
 
 const CREATE_TABLE_BLOCK = "CREATE TABLE IF NOT EXISTS Block ("
 +"`id` BIGINT NOT NULL AUTO_INCREMENT," //blockNumber
@@ -38,7 +38,7 @@ const CREATE_TABLE_BLOCK = "CREATE TABLE IF NOT EXISTS Block ("
 +"PRIMARY KEY `id` (`id`),"
 +"UNIQUE KEY `blockHash` (`blockHash`),"
 +"KEY `timestamp` (`timestamp`)"
-+")ENGINE=InnoDB;";
++")ENGINE=MyISAM;";
 
 function getTruncateTableBlock() {
   return "TRUNCATE TABLE Block";
@@ -80,68 +80,68 @@ function getTransactionTableCreationRequest(suffix) {
     //+"CONSTRAINT FK_blockNumber_T"+suffix+" FOREIGN KEY (`blockNumber`) REFERENCES `Block` (`id`)"
     //+")ENGINE=InnoDB;";
     +")ENGINE=MyISAM;";
-  }
+}
 
-  const letters = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
+const letters = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
 
-  function append(array, remaining) {
-    if(remaining <= 1) {
-      return array;
-    }
-    const sub_result = append(array, remaining - 1);
-    var result = [];
-    array.forEach(letter => {
-      sub_result.forEach(substr => {
-        result.push(substr + "" + letter);
-      })
+function append(array, remaining) {
+  if(remaining <= 1) {
+    return array.map(letter => {
+      return "_" + letter;
     });
-
-    return result;
   }
+  const sub_result = append(array, remaining - 1);
+  var result = [];
+  array.forEach(letter => {
+    sub_result.forEach(substr => {
+      result.push(substr + "" + letter);
+    })
+  });
 
-  connection.prefix_size = 2;
+  return result;
+}
 
-  connection.init = function() {
-    return new Promise((resolve, reject) => {
-      connection.query(CREATE_TABLE_ADDRESS, function(err, results, fields) {
+connection.prefix_size = 2;
+
+connection.init = function() {
+  return new Promise((resolve, reject) => {
+    connection.query(CREATE_TABLE_ADDRESS, function(err, results, fields) {
+      console.log("table creation finished", err);
+      connection.query(CREATE_TABLE_BLOCK, function(err, results, fields) {
         console.log("table creation finished", err);
-        connection.query(CREATE_TABLE_BLOCK, function(err, results, fields) {
-          console.log("table creation finished", err);
 
-          const promises = [];
+        const promises = [];
 
-          const tables = append(letters, connection.prefix_size);
-          tables.push("_"); //Transaction_
+        const tables = append(letters, connection.prefix_size);
 
-
-          tables.forEach(table => {
-            console.log("executing for table "+ table + " " + table.length);
-            _system_tables.push("Transaction"+table);
-            promises.push(new Promise((resolve, reject) => {
-              connection.query(getTransactionTableCreationRequest(table), function(err, results, fields) {
-                if(err) reject(err);
-                else resolve(results);
-              });
-            }));
-          });
-
-          Promise.all(promises)
-          .then(results => {
-            connection._init = true;
-            resolve(results);
-          })
-          .catch(err => {
-            reject(err);
-            console.log("error", err);
-          });
-
+        tables.forEach(table => {
+          console.log("executing for table "+ table + " " + table.length);
+          _system_tables.push("Transaction"+table);
+          promises.push(new Promise((resolve, reject) => {
+            connection.query(getTransactionTableCreationRequest(table), function(err, results, fields) {
+              if(err) reject(err);
+              else resolve(results);
+            });
+          }));
         });
+
+        Promise.all(promises)
+        .then(results => {
+          connection._init = true;
+          resolve(results);
+        })
+        .catch(err => {
+          reject(err);
+          console.log("error", err);
+        });
+
       });
-
     });
-  }
 
-  connection.system_tables = _system_tables;
-  connection.pool = pool;
+  });
+}
 
-  module.exports = connection;
+connection.system_tables = _system_tables;
+connection.pool = pool;
+
+module.exports = connection;
