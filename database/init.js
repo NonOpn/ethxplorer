@@ -118,9 +118,12 @@ connection.init = function() {
           console.log("executing for table "+ table + " " + table.length);
           _system_tables.push("Transaction"+table);
           promises.push(new Promise((resolve, reject) => {
-            connection.query(getTransactionTableCreationRequest(table), function(err, results, fields) {
-              if(err) reject(err);
-              else resolve(results);
+            pool.getConnection((err, connection) => {
+              connection.query(getTransactionTableCreationRequest(table), function(err, results, fields) {
+                connection.release();
+                if(err) reject(err);
+                else resolve(results);
+              });
             });
           }));
         });
