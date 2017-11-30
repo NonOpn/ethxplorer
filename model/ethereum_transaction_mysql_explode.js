@@ -7,6 +7,7 @@ EthereumBlockMysqlModel = require("./ethereum_block_mysql"),
 connection = require("../database/init"),
 Base64 = require("../base64.js");
 
+
 const pool = connection.pool;
 
 
@@ -454,11 +455,14 @@ EthereumTransactionMysqlModel.prototype.countInTable = function(table) {
 
 EthereumTransactionMysqlModel.prototype.lastBlockNumber = function(table) {
   return new Promise((resolve, reject) => {
+    const tables = connection.system_tables;
+    if(!table && tables.length > 0) table = tables[0];
     if(!table) table = TRANSACTION;
     console.log("lastBlockNumber", table);
     const query = "SELECT MAX(blockNumber) as c FROM "+table;
     console.log(query);
     pool.getConnection((err, connection) => {
+      if(err) console.log(err);
       connection.query(query,  (error, results, fields) => {
         connection.release();
         if(error) {
