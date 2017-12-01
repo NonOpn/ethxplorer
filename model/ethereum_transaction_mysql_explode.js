@@ -384,8 +384,13 @@ EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, t
         .then(from_json => {
           EthereumAddressMysqlModel.manageAddress(transaction.to)
           .then(to_json => {
-            const tx = txToArrayForInsert(transaction, from_json.id, to_json.id);
-            resolve(tx);
+            if(from_json || to_json) {
+              //if both nulls > light mode! so no management for this tx
+              const tx = txToArrayForInsert(transaction, from_json.id, to_json.id);
+              resolve(tx);
+            } else {
+              resolve(null);
+            }
           });
         })
       }));
@@ -393,19 +398,27 @@ EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, t
 
     Promise.all(promises)
     .then(results => {
+      const inserts = results.filter(result => { return undefined != result; });
+
       pool.getConnection((err, connection) => {
         if(err) console.log(err);
-        connection.query(createInsertRowsForTable(table), [results], (error, results, fields) => {
+
+        if(inserts.length == 0) {
           connection.release();
-          if(error && error.code !== "ER_DUP_ENTRY") {
-            console.log(error);
-            console.log(results);
-            console.log(fields);
-            reject(error);
-          } else {
-            resolve(txs);
-          }
-        });
+          resolve(txs);
+        } else {
+          connection.query(createInsertRowsForTable(table), [inserts], (error, results, fields) => {
+            connection.release();
+            if(error && error.code !== "ER_DUP_ENTRY") {
+              console.log(error);
+              console.log(results);
+              console.log(fields);
+              reject(error);
+            } else {
+              resolve(txs);
+            }
+          });
+        }
       })
     })
     .catch(err => {
@@ -494,7 +507,15 @@ EthereumTransactionMysqlModel.prototype.lastBlockNumber = function(table) {
 
 EthereumTransactionMysqlModel.prototype.systemDataAsJson = function() {
   return new Promise((resolve, reject) => {
-    const read = [];
+    EthereumBlockMysqlModel.lastBlockNumber()
+    .then(block_number => {
+      resolve({
+        block: block_number,
+        light: EthereumAddressMysqlModel.isLight()
+      });
+    })
+    .catch(err => reject(err));
+    /*const read = [];
     connection.system_tables.forEach((system_table) => {
       read.push(this.lastBlockNumber(system_table));
       read.push(this.countInTable(system_table));
@@ -521,12 +542,12 @@ EthereumTransactionMysqlModel.prototype.systemDataAsJson = function() {
       resolve({
         block: maxLastBlockNumber,
         approx_tx: countTx/2
-      });
-    })
-    .catch(err => {
-      reject(err);
-    });
+      });*/
   });
+}
+
+EthereumTransactionMysqlModel.prototype.isLight = function() {
+  return EthereumAddressMysqlModel.isLight();
 }
 
 module.exports = new EthereumTransactionMysqlModel();
