@@ -72,6 +72,8 @@ EthereumAddressMysqlModel.prototype.setApiSync = function(address, is_api_sync) 
           //update cache
           CACHE.set(json.id, json);
           CACHE.set(json.address, json);
+
+          resolve(json);
         });
       });
     })
@@ -107,13 +109,24 @@ EthereumAddressMysqlModel.prototype.getOrSave = function(address) {
 
 EthereumAddressMysqlModel.prototype.manageAddress = function(address) {
   if(this._light) {
-    return this.get(address);
+    return new Promise((resolve, reject) => {
+      this.get(address)
+      .then(json => {
+        if(json && json.is_api_sync) {
+          resolve(json);
+        } else {
+          resolve(null);
+        }
+      })
+      .catch(err => reject(err));
+    });
   } else {
     return this.getOrSave(address);
   }
 }
 
 EthereumAddressMysqlModel.prototype.manageAddresses = function(addresses) {
+  //always save addresses
   return this.saveMultiple(addresses);
 }
 
@@ -224,6 +237,10 @@ EthereumAddressMysqlModel.prototype.saveMultiple = function(addresses) {
       });
     }
   });
+}
+
+EthereumAddressMysqlModel.prototype.isLight = function() {
+  return this._light;
 }
 
 module.exports = new EthereumAddressMysqlModel();
