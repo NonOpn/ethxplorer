@@ -30,10 +30,6 @@ function createInsertRowsForTable(table) {
   return "INSERT IGNORE INTO "+table+" ("+columns.join(",")+") VALUES ? ";
 }
 
-function createInsertRows(address) {
-  return createInsertRowsForTable(tableFromAddress(address));
-}
-
 function selectColumns(address) {
   var columns = COLUMNS.map((col) => { return "`"+col+"`"; });
   return "SELECT `id`, "+columns.join(",")+" FROM "+tableFromAddress(address)+" AS T";
@@ -48,8 +44,6 @@ function selectJoinAddresses(address) {
   var columns = COLUMNS_NO_FOREIGN.map((col) => { return "`"+col+"`"; });
   return "SELECT `id`, "+columns.join(",")+", aTo AS to, aFrom as from FROM "+tableFromAddress(address)+" AS T LEFT JOIN Address as aFrom ON aFrom.id = from LEFT Address as aTo ON aTo.id = to";
 }
-
-const INSERT_ROWS = createInsertRows();
 
 function txToJson(tx) {
   return {
