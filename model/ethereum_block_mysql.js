@@ -4,6 +4,8 @@ config = require("../configs/blocks.js"),
 murmurHash = require('murmurhash-native').murmurHash,
 connection = require("../database/init");
 
+const pool = connection.pool;
+
 const COLUMNS = ["id", "blockHash", "timestamp"];
 
 function createInsertRows() {
@@ -39,20 +41,44 @@ EthereumBlockMysqlModel.prototype.getModelName = function() {
 
 EthereumBlockMysqlModel.prototype.exists = function(blockNumber) {
   return new Promise((resolve, reject) => {
-    connection.query("SELECT id FROM Block WHERE id = ? ", [blockNumber],  (error, results, fields) => {
-      if(error) {
-        reject(error);
-        return;
-      }
+    pool.getConnection((err, connection) => {
+      connection.query("SELECT id FROM Block WHERE id = ? ", [blockNumber],  (error, results, fields) => {
+        connection.release();
+        if(error) {
+          reject(error);
+          return;
+        }
 
-      if(results && results.length > 0) {
-        resolve(true);
-      } else {
-        resolve(false);
-      }
+        if(results && results.length > 0) {
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      });
     });
   });
 }
+
+EthereumBlockMysqlModel.prototype.lastBlockNumber = function() {
+  return new Promise((resolve, reject) => {
+    pool.getConnection((err, connection) => {
+      connection.query("SELECT MAX(id) as c FROM Block",  (error, results, fields) => {
+        connection.release();
+        if(error) {
+          reject(error);
+          return;
+        }
+
+        if(results && results.length > 0) {
+          resolve(results[0].c);
+        } else {
+          resolve(0);
+        }
+      });
+    });
+  });
+}
+
 EthereumBlockMysqlModel.prototype.getOrSave = function(block) {
   return new Promise((resolve, reject) => {
     this.get(block.number)
@@ -71,39 +97,45 @@ EthereumBlockMysqlModel.prototype.getOrSave = function(block) {
 
 EthereumBlockMysqlModel.prototype.get = function(blockNumber) {
   return new Promise((resolve, reject) => {
-    connection.query(selectColumns()+" WHERE id = ? ", [blockNumber],  (error, results, fields) => {
-      if(error) {
-        reject(error);
-        return;
-      }
+    pool.getConnection((err, connection) => {
+      connection.query(selectColumns()+" WHERE id = ? ", [blockNumber],  (error, results, fields) => {
+        connection.release();
+        if(error) {
+          reject(error);
+          return;
+        }
 
-      if(results && results.length > 0) {
-        resolve(rowToJson(results[0]));
-      } else {
-        resolve(undefined);
-      }
+        if(results && results.length > 0) {
+          resolve(rowToJson(results[0]));
+        } else {
+          resolve(undefined);
+        }
+      });
     });
   });
 }
 
 EthereumBlockMysqlModel.prototype.save = function(block) {
   return new Promise((resolve, reject) => {
-    connection.query("INSERT INTO Block (`id`, `blockHash`, `timestamp`) VALUES (?, ?, ?)", [block.number, block.hash, block.timestamp], (error, results, fields) => {
-      if(error) {
-        if(error.code == "ER_DUP_ENTRY") {
-          this.get(block.number)
-          .then(json => resolve(json))
-          .catch(err => reject(err));
+    pool.getConnection((err, connection) => {
+      connection.query("INSERT INTO Block (`id`, `blockHash`, `timestamp`) VALUES (?, ?, ?)", [block.number, block.hash, block.timestamp], (error, results, fields) => {
+        connection.release();
+        if(error) {
+          if(error.code == "ER_DUP_ENTRY") {
+            this.get(block.number)
+            .then(json => resolve(json))
+            .catch(err => reject(err));
+          } else {
+            reject(error);
+          }
         } else {
-          reject(error);
+          resolve({
+            blockNumber: block.number,//results.insertId,
+            blockHash: block.hash,
+            timestamp: block.timestamp
+          });
         }
-      } else {
-        resolve({
-          blockNumber: block.number,//results.insertId,
-          blockHash: block.hash,
-          timestamp: block.timestamp
-        });
-      }
+      });
     });
   });
 }
