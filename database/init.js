@@ -27,6 +27,7 @@ var pool = mysql.createPool({
 const CREATE_TABLE_ADDRESS = "CREATE TABLE IF NOT EXISTS Address ("
 +"`id` BIGINT NOT NULL AUTO_INCREMENT,"
 +"`address` VARCHAR(60) NOT NULL," //ethereum addresses are 20 bytes longs > 40 char bytes + 2 char bytes (0 + x)
++"`is_api_sync` BOOLEAN NOT NULL DEFAULT false,"
 +"PRIMARY KEY `id` (`id`),"
 +"UNIQUE KEY `address` (`address`)"
 +")ENGINE=MyISAM;";
