@@ -30,7 +30,7 @@ function rowToJson(row) {
 }
 
 const EthereumAddressMysqlModel = function() {
-
+  this._light = config.light;
 }
 
 Abstract.make_inherit(EthereumAddressMysqlModel);
@@ -72,6 +72,18 @@ EthereumAddressMysqlModel.prototype.getOrSave = function(address) {
     })
     .catch(err => reject(err));
   });
+}
+
+EthereumAddressMysqlModel.prototype.manageAddress = function(address) {
+  if(this._light) {
+    return this.get(address);
+  } else {
+    return this.getOrSave(address);
+  }
+}
+
+EthereumAddressMysqlModel.prototype.manageAddresses = function(addresses) {
+  return this.saveMultiple(addresses);
 }
 
 
@@ -153,6 +165,33 @@ EthereumAddressMysqlModel.prototype.save = function(address) {
         }
       });
     });
+  });
+}
+
+EthereumAddressMysqlModel.prototype.saveMultiple = function(addresses) {
+  return new Promise((resolve, reject) => {
+    if(addresses.length == 0) {
+      resolve(true);
+    } else {
+      const to_save = [];
+      addresses.forEach(address => { to_save.push([address])});
+
+      pool.getConnection((err, connection) => {
+        connection.query("INSERT IGNORE INTO Address (`address`) VALUES ?", [to_save], (error, results, fields) => {
+          connection.release();
+          if(error) {
+            console.log(error);
+            if(error.code == "ER_DUP_ENTRY") {
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          } else {
+            resolve(true);
+          }
+        });
+      });
+    }
   });
 }
 

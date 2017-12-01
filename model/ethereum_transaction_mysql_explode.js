@@ -218,8 +218,14 @@ EthereumTransactionMysqlModel.prototype.getMergeable = function(txs, block) {
   return new Promise((resolve, reject) => {
     const array = [];
     const tables = [];
+    const addresses = [];
 
     txs.forEach(tx => {
+      if(tx.from) tx.from = tx.from.toLowerCase();
+      if(tx.to) tx.to = tx.to.toLowerCase();
+      if(addresses.indexOf(tx.from) < 0) addresses.push(tx.from);
+      if(addresses.indexOf(tx.to) < 0) addresses.push(tx.to);
+
       const standard = tableFromAddress(undefined);
       const table_from = tableFromAddress(tx.from);
       const table_to = tableFromAddress(tx.to);
@@ -257,7 +263,10 @@ EthereumTransactionMysqlModel.prototype.getMergeable = function(txs, block) {
       }
     });
 
-    EthereumBlockMysqlModel.getOrSave(block)
+    EthereumAddressMysqlModel.manageAddresses(addresses)
+    .then(saved => {
+      return EthereumBlockMysqlModel.getOrSave(block);
+    })
     .then(json => {
       resolve({
         tables: tables,
@@ -297,8 +306,14 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
   return new Promise((resolve, reject) => {
     const array = [];
     const tables = [];
+    const addresses = [];
 
     txs.forEach(tx => {
+      if(tx.from) tx.from = tx.from.toLowerCase();
+      if(tx.to) tx.to = tx.to.toLowerCase();
+      if(addresses.indexOf(tx.from) < 0) addresses.push(tx.from);
+      if(addresses.indexOf(tx.to) < 0) addresses.push(tx.to);
+
       const standard = tableFromAddress(undefined);
       const table_from = tableFromAddress(tx.from);
       const table_to = tableFromAddress(tx.to);
@@ -336,7 +351,10 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
       }
     });
 
-    EthereumBlockMysqlModel.getOrSave(block)
+    EthereumAddressMysqlModel.manageAddresses(addresses)
+    .then(saved => {
+      return EthereumBlockMysqlModel.getOrSave(block);
+    })
     .then(json => {
       const table_promise = [];
       tables.forEach(table => {
@@ -368,12 +386,10 @@ EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, t
 
     txs.forEach(transaction => {
       promises.push(new Promise((resolve, reject) => {
-        EthereumAddressMysqlModel.getOrSave(transaction.from)
+        EthereumAddressMysqlModel.manageAddress(transaction.from)
         .then(from_json => {
-          if(transaction.from != from_json.address) console.log("ERROR "+transaction.from +" "+from_json.address, from_json);
-          EthereumAddressMysqlModel.getOrSave(transaction.to)
+          EthereumAddressMysqlModel.manageAddress(transaction.to)
           .then(to_json => {
-            if(transaction.to != to_json.address) console.log("ERROR "+transaction.to +" "+to_json.address, to_json);
             const tx = txToArrayForInsert(transaction, from_json.id, to_json.id);
             resolve(tx);
           });
