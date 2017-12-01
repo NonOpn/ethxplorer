@@ -1,6 +1,7 @@
 const express = require("express"),
 router = express.Router(),
 ethereum_transaction = require("../model/ethereum_transaction_mysql_explode"),
+ethereum_address = require("../model/ethereum_address_mysql"),
 web3 = require("../web3/provider");
 
 const LIMIT = 1000;
@@ -10,6 +11,7 @@ const ERROR_WITH_ADDRESS = "Error with address";
 const MISSING_PARAMS_INPUT = "Missing params input";
 const MISSING_PARAMS_ADDRESS = "Missing params address";
 const ERROR_WITH_SYNC = "Error with the current server state";
+const INCOMPATIBLE_MODE = "Incompatible server mode";
 
 function getTransactionsForAddressFromDesc(req, res, from) {
   const address = req.params.address || undefined;
@@ -43,6 +45,31 @@ router.get("/address/:address/from/desc/:from.json", function(req, res) {
   const from = req.params.from || undefined;
   if(isNaN(from)) from = 0;
   getTransactionsForAddressFromDesc(req, res, from);
+});
+
+router.get("/address/:address/register.json", function(req, res) {
+  const address = req.params.address || undefined;
+  var from = parseInt(req.query.from || 0);
+  if(isNaN(from)) from = 0;
+
+  if(address && web3.utils.isAddress(address)) {
+    if(ethereum_address.isLight()) {
+        ethereum_address.setApiSync(address, true)
+        .then(json => {
+          res.json({
+            address: json.address,
+            is_api_sync: json.is_api_sync
+          });
+        })
+        .catch(err => {
+          res.status(500).json({error: ERROR_WITH_ADDRESS, code: -2});
+        })
+    } else {
+      res.json({error: INCOMPATIBLE_MODE, code: -3});
+    }
+  } else {
+    res.json({error: MISSING_PARAMS_ADDRESS, code: -1});
+  }
 });
 
 router.get("/address/:address.json", function(req, res) {
