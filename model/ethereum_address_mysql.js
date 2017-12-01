@@ -8,7 +8,7 @@ const NodeCache = require("node-cache");
 const pool = connection.pool;
 const CACHE = new NodeCache( { stdTTL: 10000, checkperiod: 120 } );
 
-const COLUMNS = ["address"];
+const COLUMNS = ["address", "is_api_sync"];
 
 function createInsertRows() {
   var columns = COLUMNS.map((col) => { return "`"+col+"`"; });
@@ -25,7 +25,8 @@ const INSERT_ROWS = createInsertRows();
 function rowToJson(row) {
   return {
     id: row.id,
-    address: row.address.toLowerCase()
+    address: row.address.toLowerCase(),
+    is_api_sync: row.is_api_sync
   }
 }
 
@@ -55,6 +56,36 @@ EthereumAddressMysqlModel.prototype.exists = function(address) {
         resolve(false);
       }
     });
+  });
+}
+
+EthereumAddressMysqlModel.prototype.setApiSync = function(address, is_api_sync) {
+  return new Promise((resolve, reject) => {
+    this.getOrSave(address)
+    .then(json => {
+      pool.getConnection((err, connection) => {
+        if(err) console.log(err);
+        connection.query("UPDATE Address SET is_api_sync = ? WHERE address = ? ", [is_api_sync, address],  (error, results, fields) => {
+          connection.release();
+
+          json.is_api_sync = is_api_sync;
+          //update cache
+          CACHE.set(json.id, json);
+          CACHE.set(json.address, json);
+        });
+      });
+    })
+    .catch(err => reject(err));
+  });
+}
+
+EthereumAddressMysqlModel.prototype.isApiSync = function(address) {
+  return new Promise((resolve, reject) => {
+    this.getOrSave(address)
+    .then(json => {
+      resolve(json != null && json.is_api_sync);
+    })
+    .catch(err => reject(err));
   });
 }
 
