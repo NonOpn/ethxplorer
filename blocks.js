@@ -155,7 +155,7 @@ Blocks.prototype.fetchBlock = function(block_number) {
 Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlockNumber) {
   return new Promise((resolve, reject) => {
     var whole_start = process.hrtime();
-    console.log(`from #${startBlockNumber} to #${endBlockNumber}`);
+    console.log(`from #${startBlockNumber} to #${endBlockNumber} :: light? ${ethereum_transaction.isLight()}`);
     if(startBlockNumber < endBlockNumber) {
       const begin_block = startBlockNumber;
       const treshold = startBlockNumber + this._speedup;
