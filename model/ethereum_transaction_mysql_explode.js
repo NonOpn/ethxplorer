@@ -383,7 +383,7 @@ EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, t
         .then(from_json => {
           EthereumAddressMysqlModel.manageAddress(transaction.to)
           .then(to_json => {
-            if(from_json || to_json) {
+            if(EthereumAddressMysqlModel.canSave(from_json, to_json)) {
               //if both nulls > light mode! so no management for this tx
               const tx = txToArrayForInsert(transaction, from_json.id, to_json.id);
               resolve(tx);
