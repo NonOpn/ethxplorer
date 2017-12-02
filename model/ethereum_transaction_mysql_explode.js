@@ -367,8 +367,6 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
 }
 
 EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, txs/*, json*//*block*/) {
-
-  console.log(table);
   return new Promise((resolve, reject) => {
 
     if(!txs || txs.length == 0) {
@@ -387,6 +385,8 @@ EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, t
           .then(to_json => {
             if(EthereumAddressMysqlModel.canSave(from_json, to_json)) {
               //if both nulls > light mode! so no management for this tx
+
+              console.log(table +" "+transaction.from+" "+transaction.to);
               const tx = txToArrayForInsert(transaction, from_json.id, to_json.id);
               resolve(tx);
             } else {
