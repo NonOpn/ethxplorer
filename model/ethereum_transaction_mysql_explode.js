@@ -367,6 +367,8 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
 }
 
 EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, txs/*, json*//*block*/) {
+
+  console.log(table);
   return new Promise((resolve, reject) => {
 
     if(!txs || txs.length == 0) {
