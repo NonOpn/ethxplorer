@@ -477,32 +477,7 @@ EthereumTransactionMysqlModel.prototype.countInTable = function(table) {
 }
 
 EthereumTransactionMysqlModel.prototype.lastBlockNumber = function(table) {
-  return new Promise((resolve, reject) => {
-    const tables = connection.system_tables;
-    if(!table && tables.length > 0) table = tables[0];
-    if(!table) table = TRANSACTION;
-    console.log("lastBlockNumber", table);
-    const query = "SELECT MAX(blockNumber) as c FROM "+table;
-    console.log(query);
-    pool.getConnection((err, connection) => {
-      if(err) console.log(err);
-      connection.query(query,  (error, results, fields) => {
-        connection.release();
-        if(error) {
-          console.log(error);
-          reject(error);
-          return;
-        }
-
-        if(results && results.length > 0) {
-          resolve(results[0].c || 0);
-        } else {
-          console.log(results);
-          resolve(0);
-        }
-      });
-    });
-  });
+  return EthereumBlockMysqlModel.lastBlockNumber();
 }
 
 EthereumTransactionMysqlModel.prototype.systemDataAsJson = function() {
