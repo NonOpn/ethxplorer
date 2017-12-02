@@ -202,7 +202,7 @@ EthereumTransactionMysqlModel.prototype.withAddress = function(address, blockNum
     .then(json => {
       const id = json.id;
       const query = selectColumnsJoin(address) + " WHERE (T.`from` = ? OR T.`to` = ? ) AND blockNumber >= ? LIMIT ?";
-      connection.query(query, [id, address, blockNumber, limit],  lambdaArray(resolve, reject));
+      connection.query(query, [id, id, blockNumber, limit],  lambdaArray(resolve, reject));
     });
   });
 }
