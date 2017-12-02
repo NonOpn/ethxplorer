@@ -21,6 +21,7 @@ const COLUMNS_NO_FOREIGN = ["blockNumber","gas","gasPrice", "hash", "input", "no
 function tableFromAddress(address) {
   if(!address || address.length < 6) return TRANSACTION+"00";
 
+  console.log(address);
   address = address.toLowerCase();
   return TRANSACTION + address.substr((address.indexOf("0x") == 0) ? 2 : 0, connection.prefix_size).toUpperCase();
 }
