@@ -21,7 +21,6 @@ const COLUMNS_NO_FOREIGN = ["blockNumber","gas","gasPrice", "hash", "input", "no
 function tableFromAddress(address) {
   if(!address || address.length < 6) return TRANSACTION+"00";
 
-  console.log(address);
   address = address.toLowerCase();
   return TRANSACTION + address.substr((address.indexOf("0x") == 0) ? 2 : 0, connection.prefix_size).toUpperCase();
 }
@@ -32,19 +31,16 @@ function createInsertRowsForTable(table) {
 }
 
 function selectColumns(address) {
-  console.log("selectColumns");
   var columns = COLUMNS.map((col) => { return "`"+col+"`"; });
   return "SELECT `id`, "+columns.join(",")+" FROM "+tableFromAddress(address)+" AS T";
 }
 
 function selectColumnsJoin(address) {
-  console.log("selectColumnsJoin");
   var columns = COLUMNS_NO_FOREIGN.map((col) => { return "`"+col+"`"; });
   return "SELECT T.`id`, "+columns.join(",")+", `AFROM`.`address` AS `from`, `ATO`.`address` AS `to` FROM "+tableFromAddress(address)+" AS T LEFT JOIN Address AS AFROM ON AFROM.id=T.`from` LEFT JOIN Address AS ATO ON ATO.id=T.`to`";
 }
 
 function selectJoinAddresses(address) {
-  console.log("selectJoinAddresses");
   var columns = COLUMNS_NO_FOREIGN.map((col) => { return "`"+col+"`"; });
   return "SELECT `id`, "+columns.join(",")+", aTo AS to, aFrom as from FROM "+tableFromAddress(address)+" AS T LEFT JOIN Address as aFrom ON aFrom.id = from LEFT Address as aTo ON aTo.id = to";
 }
@@ -163,7 +159,6 @@ EthereumTransactionMysqlModel.prototype.countForAddress = function(address) {
     .then(json => {
       address = json.id;
       const query = "SELECT \"from\" AS `type`, COUNT(*) AS count FROM Transaction WHERE `from`=? UNION SELECT \"to\" AS `type`, COUNT(*) AS count FROM Transaction WHERE `to`=? UNION SELECT \"same\" AS `type`, COUNT(*) AS count FROM Transaction WHERE `from`=? AND `to`=?;";
-      console.log(query);
       connection.query(query, [address, address, address, address],  (error, results, fields) => {
         if(error) {
           console.log(error);
@@ -187,7 +182,6 @@ EthereumTransactionMysqlModel.prototype.withAddressFromId = function(address, li
   return new Promise((resolve, reject) => {
     EthereumAddressMysqlModel.getOrSave(address)
     .then(json => {
-      console.log("withAddressFromId "+address);
       const id = json.id;
       //TODO look for improvement
       const query_look_from_to = "SELECT `id` FROM "
@@ -206,9 +200,9 @@ EthereumTransactionMysqlModel.prototype.withAddress = function(address, blockNum
   return new Promise((resolve, reject) => {
     EthereumAddressMysqlModel.getOrSave(address)
     .then(json => {
-      address = json.id;
+      const id = json.id;
       const query = selectColumnsJoin(address) + " WHERE (T.`from` = ? OR T.`to` = ? ) AND blockNumber >= ? LIMIT ?";
-      connection.query(query, [address, address, blockNumber, limit],  lambdaArray(resolve, reject));
+      connection.query(query, [id, address, blockNumber, limit],  lambdaArray(resolve, reject));
     });
   });
 }
@@ -225,7 +219,6 @@ EthereumTransactionMysqlModel.prototype.getMergeable = function(txs, block) {
       if(addresses.indexOf(tx.from) < 0) addresses.push(tx.from);
       if(addresses.indexOf(tx.to) < 0) addresses.push(tx.to);
 
-        console.log("getMergeable");
       const standard = tableFromAddress(undefined);
       const table_from = tableFromAddress(tx.from);
       const table_to = tableFromAddress(tx.to);
