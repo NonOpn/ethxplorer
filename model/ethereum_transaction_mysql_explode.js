@@ -184,6 +184,7 @@ EthereumTransactionMysqlModel.prototype.withAddressFromId = function(address, li
   return new Promise((resolve, reject) => {
     EthereumAddressMysqlModel.getOrSave(address)
     .then(json => {
+      console.log("withAddressFromId "+address);
       const id = json.id;
       //TODO look for improvement
       const query_look_from_to = "SELECT `id` FROM "
