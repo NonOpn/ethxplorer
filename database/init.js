@@ -131,7 +131,7 @@ connection.init = function() {
 
         promises.push(new Promise((resolve, reject) => {
           pool.getConnection((err, connection) => {
-            connection.query(getTransactionTableCreationRequest(""), function(err, results, fields) {
+            connection.query(getTransactionTableCreationRequest("_"), function(err, results, fields) {
               connection.release();
               if(err) reject(err);
               else resolve(results);
