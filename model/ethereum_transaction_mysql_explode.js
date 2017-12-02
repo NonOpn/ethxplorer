@@ -35,9 +35,9 @@ function selectColumns(address) {
   return "SELECT `id`, "+columns.join(",")+" FROM "+tableFromAddress(address)+" AS T";
 }
 
-function selectColumnsJoin() {
+function selectColumnsJoin(address) {
   var columns = COLUMNS_NO_FOREIGN.map((col) => { return "`"+col+"`"; });
-  return "SELECT T.`id`, "+columns.join(",")+", `AFROM`.`address` AS `from`, `ATO`.`address` AS `to` FROM Transaction AS T LEFT JOIN Address AS AFROM ON AFROM.id=T.`from` LEFT JOIN Address AS ATO ON ATO.id=T.`to`";
+  return "SELECT T.`id`, "+columns.join(",")+", `AFROM`.`address` AS `from`, `ATO`.`address` AS `to` FROM "+tableFromAddress(address)+" AS T LEFT JOIN Address AS AFROM ON AFROM.id=T.`from` LEFT JOIN Address AS ATO ON ATO.id=T.`to`";
 }
 
 function selectJoinAddresses(address) {
@@ -190,7 +190,7 @@ EthereumTransactionMysqlModel.prototype.withAddressFromId = function(address, li
       + " UNION"
       + " (SELECT `id` FROM "+tableFromAddress(address)+" WHERE `from`=? AND `id` < ? ORDER BY id DESC LIMIT ?)) AS T"
       + " ORDER BY T.`id` DESC LIMIT ?";
-      const query = selectColumnsJoin() + " INNER JOIN ("+query_look_from_to+") AS COMP ON COMP.`id` = T.`id`";
+      const query = selectColumnsJoin(address) + " INNER JOIN ("+query_look_from_to+") AS COMP ON COMP.`id` = T.`id`";
       console.log(query);
       connection.query(query, [address, from, limit, address, from, limit, limit], lambdaArray(resolve, reject));
     });
