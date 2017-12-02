@@ -391,6 +391,9 @@ EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, t
             } else {
               resolve(null);
             }
+          })
+          .catch(err => {
+            console.log(err);
           });
         })
       }));
@@ -490,34 +493,6 @@ EthereumTransactionMysqlModel.prototype.systemDataAsJson = function() {
       });
     })
     .catch(err => reject(err));
-    /*const read = [];
-    connection.system_tables.forEach((system_table) => {
-      read.push(this.lastBlockNumber(system_table));
-      read.push(this.countInTable(system_table));
-    });
-
-    Promise.all(read)
-    .then(results => {
-      console.log("results :=", results);
-      var maxLastBlockNumber = 0;
-      var countTx = 0;
-      const to_send = [];
-      for(var i = 0 ; i<results.length/2; i++) {
-        if(results[i*2] > maxLastBlockNumber) {
-          maxLastBlockNumber = results[i*2];
-        }
-        countTx += results[i*2+1];
-        //to_send.push({
-        //  table: connection.system_tables[i],
-        //  lastBlockNumber: results[i*2],
-        //  countTx: results[i*2+1]
-        //});
-      }
-      //resolve(to_send);
-      resolve({
-        block: maxLastBlockNumber,
-        approx_tx: countTx/2
-      });*/
   });
 }
 
