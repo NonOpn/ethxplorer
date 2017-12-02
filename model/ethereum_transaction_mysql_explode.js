@@ -184,7 +184,7 @@ EthereumTransactionMysqlModel.prototype.withAddressFromId = function(address, li
   return new Promise((resolve, reject) => {
     EthereumAddressMysqlModel.getOrSave(address)
     .then(json => {
-      address = json.id;
+      const id = json.id;
       //TODO look for improvement
       const query_look_from_to = "SELECT `id` FROM "
       + " ((SELECT `id` FROM "+tableFromAddress(address)+" WHERE `to`=? AND `id` < ? ORDER BY id DESC LIMIT ?)"
@@ -193,7 +193,7 @@ EthereumTransactionMysqlModel.prototype.withAddressFromId = function(address, li
       + " ORDER BY T.`id` DESC LIMIT ?";
       const query = selectColumnsJoin(address) + " INNER JOIN ("+query_look_from_to+") AS COMP ON COMP.`id` = T.`id`";
       console.log(query);
-      connection.query(query, [address, from, limit, address, from, limit, limit], lambdaArray(resolve, reject));
+      connection.query(query, [id, from, limit, id, from, limit, limit], lambdaArray(resolve, reject));
     });
   });
 }
