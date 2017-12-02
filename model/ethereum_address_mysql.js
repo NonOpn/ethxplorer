@@ -26,7 +26,7 @@ function rowToJson(row) {
   return {
     id: row.id,
     address: row.address.toLowerCase(),
-    is_api_sync: row.is_api_sync
+    is_api_sync: row.is_api_sync == true || row.is_api_sync > 0
   }
 }
 
@@ -112,6 +112,7 @@ EthereumAddressMysqlModel.prototype.manageAddress = function(address) {
     return new Promise((resolve, reject) => {
       this.get(address)
       .then(json => {
+        console.log(json);
         if(json && json.is_api_sync) {
           resolve(json);
         } else {
