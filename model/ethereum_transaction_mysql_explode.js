@@ -32,16 +32,19 @@ function createInsertRowsForTable(table) {
 }
 
 function selectColumns(address) {
+  console.log("selectColumns");
   var columns = COLUMNS.map((col) => { return "`"+col+"`"; });
   return "SELECT `id`, "+columns.join(",")+" FROM "+tableFromAddress(address)+" AS T";
 }
 
 function selectColumnsJoin(address) {
+  console.log("selectColumnsJoin");
   var columns = COLUMNS_NO_FOREIGN.map((col) => { return "`"+col+"`"; });
   return "SELECT T.`id`, "+columns.join(",")+", `AFROM`.`address` AS `from`, `ATO`.`address` AS `to` FROM "+tableFromAddress(address)+" AS T LEFT JOIN Address AS AFROM ON AFROM.id=T.`from` LEFT JOIN Address AS ATO ON ATO.id=T.`to`";
 }
 
 function selectJoinAddresses(address) {
+  console.log("selectJoinAddresses");
   var columns = COLUMNS_NO_FOREIGN.map((col) => { return "`"+col+"`"; });
   return "SELECT `id`, "+columns.join(",")+", aTo AS to, aFrom as from FROM "+tableFromAddress(address)+" AS T LEFT JOIN Address as aFrom ON aFrom.id = from LEFT Address as aTo ON aTo.id = to";
 }
@@ -222,6 +225,7 @@ EthereumTransactionMysqlModel.prototype.getMergeable = function(txs, block) {
       if(addresses.indexOf(tx.from) < 0) addresses.push(tx.from);
       if(addresses.indexOf(tx.to) < 0) addresses.push(tx.to);
 
+        console.log("getMergeable");
       const standard = tableFromAddress(undefined);
       const table_from = tableFromAddress(tx.from);
       const table_to = tableFromAddress(tx.to);
