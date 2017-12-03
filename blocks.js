@@ -44,16 +44,16 @@ Blocks.prototype.init = function() {
 Blocks.prototype.getLastBlockManaged = function() {
   return new Promise((resolve, reject) => {
     console.log("getLastBlockManaged");
-      ethereum_transaction.lastBlockNumber()
-      .then(lastBlockNumber => {
-        //since it was ok, load next block...
-        if(this._last_sync_ok) lastBlockNumber ++;
-        console.log(lastBlockNumber);
-        if(lastBlockNumber < 46000) lastBlockNumber = 46000;
-        resolve(lastBlockNumber);
-      })
-      .catch(err => {
-      });
+    ethereum_transaction.lastBlockNumber()
+    .then(lastBlockNumber => {
+      //since it was ok, load next block...
+      if(this._last_sync_ok) lastBlockNumber ++;
+      console.log(lastBlockNumber);
+      if(lastBlockNumber < 46000) lastBlockNumber = 46000;
+      resolve(lastBlockNumber);
+    })
+    .catch(err => {
+    });
   });
 }
 
@@ -77,31 +77,35 @@ Blocks.prototype.isStarted = function() {
 }
 
 Blocks.prototype.internalStart = function(first_block, force) {
-    this._is_started = true;
-    var can_start = false;
+  this._is_started = true;
+  var can_start = false;
 
-    ethereum_address.canSync()
-    .then(as_api_sync => {
-      can_start = as_api_sync;
-      if(!can_start) {
-        this._is_started = false;
-        return;
-      }
+  ethereum_address.canSync()
+  .then(as_api_sync => {
+    can_start = as_api_sync;
+    if(!can_start) {
+      this._is_started = false;
+      return false;
+    }
 
-      return this._provider.getBlockNumber();
-    })
-    .then(blockNumber => {
+    return this._provider.getBlockNumber();
+  })
+  .then(blockNumber => {
+    if(can_start) {
+      this._is_started = false;
       console.log("blockNumber", blockNumber+" "+can_start);
       blockNumber -= SAFE_BLOCK_DELTA_HEIGHT;
       if(first_block + 10000 < blockNumber) {
         blockNumber = first_block + 10000;
       }
+
       this._internal_event.emit("current_batch", first_block, blockNumber);
-    })
-    .catch(err => {
-      this._is_started = false;
-      console.log(err);
-    });
+    }
+  })
+  .catch(err => {
+    this._is_started = false;
+    console.log(err);
+  });
 }
 
 Blocks.prototype.fetchBlockRetrieveTransactions = function(block_number, end) {
@@ -188,7 +192,7 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
 
         const output = {
           tables: [],
-           array: []
+          array: []
         };
 
         const callback = (i) => {
@@ -211,7 +215,7 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
               callback(i+1);
             })
             .catch(err => {
-            this._last_sync_ok = false;
+              this._last_sync_ok = false;
               reject(err);
             })
           } else {
