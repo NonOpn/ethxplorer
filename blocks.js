@@ -47,7 +47,7 @@ Blocks.prototype.getLastBlockManaged = function() {
       ethereum_transaction.lastBlockNumber()
       .then(lastBlockNumber => {
         //since it was ok, load next block...
-        if(lastthis._last_sync_ok) lastBlockNumber ++;
+        if(this._last_sync_ok) lastBlockNumber ++;
         console.log(lastBlockNumber);
         if(lastBlockNumber < 46000) lastBlockNumber = 46000;
         resolve(lastBlockNumber);
