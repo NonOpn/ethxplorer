@@ -137,7 +137,6 @@ EthereumAddressMysqlModel.prototype.canSync = function() {
     return new Promise((resolve, reject) => {
       pool.getConnection((err, connection) => {
         connection.query("SELECT address FROM Address WHERE is_api_sync = TRUE LIMIT 1",  (error, results, fields) => {
-          console.log(results);
           if(results && results.length > 0) {
             resolve(true);
           } else {
