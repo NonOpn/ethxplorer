@@ -344,10 +344,7 @@ EthereumTransactionMysqlModel.prototype.saveMultiple = function(txs, block) {
       }
     });
 
-    EthereumAddressMysqlModel.manageAddresses(addresses)
-    .then(saved => {
-      return EthereumBlockMysqlModel.getOrSave(block);
-    })
+    EthereumBlockMysqlModel.getOrSave(block)
     .then(json => {
       const table_promise = [];
       tables.forEach(table => {
@@ -379,24 +376,26 @@ EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, t
 
     txs.forEach(transaction => {
       promises.push(new Promise((resolve, reject) => {
-        EthereumAddressMysqlModel.manageAddress(transaction.from)
-        .then(from_json => {
-          EthereumAddressMysqlModel.manageAddress(transaction.to)
-          .then(to_json => {
-            if(EthereumAddressMysqlModel.canSave(from_json, to_json)) {
+        const from = transaction.from;
+        const to = transaction.to;
+        if(EthereumAddressMysqlModel.canSave(from, to)) {
+          //if at least one of the adresses is know, save both
+          EthereumAddressMysqlModel.getOrSave(from)
+          .then(from_json => {
+            EthereumAddressMysqlModel.getOrSave(to)
+            .then(to_json => {
               //if both nulls > light mode! so no management for this tx
-
-              console.log(table +" "+transaction.from+" "+transaction.to);
+              console.log(table +" "+from+" "+to);
               const tx = txToArrayForInsert(transaction, from_json.id, to_json.id);
               resolve(tx);
-            } else {
-              resolve(null);
-            }
+            })
+            .catch(err => {
+              console.log(err);
+            });
           })
-          .catch(err => {
-            console.log(err);
-          });
-        })
+        } else {
+          resolve(null);
+        }
       }));
     });
 

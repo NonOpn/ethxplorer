@@ -107,23 +107,30 @@ EthereumAddressMysqlModel.prototype.getOrSave = function(address) {
   });
 }
 
-EthereumAddressMysqlModel.prototype.canSave = function(from_json, to_json) {
-  if(this._light)
-  return from_json.is_api_sync || to_json.is_api_sync;
-  return true;
-}
-
-EthereumAddressMysqlModel.prototype.manageAddress = function(address) {
+EthereumAddressMysqlModel.prototype.canSave = function(from, to) {
   if(this._light) {
     return new Promise((resolve, reject) => {
-      this.get(address)
-      .then(json => {
-        resolve(json);
+      var from_json = undefined;
+      var to_json = undefined;
+
+      this.get(from)
+      .then(obtained => {
+        from_json = obtained;
+        return this.get(to);
+      })
+      .then(obtained => {
+        to_json = obtained;
+
+        if(from_json && from_json.is_api_sync) resolve(true);
+        else if(to_json && to_json.is_api_sync) resolve(true);
+        resolve(false);
       })
       .catch(err => reject(err));
-    });
+    })
   } else {
-    return this.getOrSave(address);
+    return new Promise((resolve, reject) => {
+      resolve(true);
+    });
   }
 }
 
