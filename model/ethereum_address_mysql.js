@@ -109,7 +109,7 @@ EthereumAddressMysqlModel.prototype.getOrSave = function(address) {
 
 EthereumAddressMysqlModel.prototype.canSave = function(from_json, to_json) {
   if(this._light)
-    return from_json.is_api_sync || to_json.is_api_sync;
+  return from_json.is_api_sync || to_json.is_api_sync;
   return true;
 }
 
@@ -132,6 +132,28 @@ EthereumAddressMysqlModel.prototype.manageAddresses = function(addresses) {
   return this.saveMultiple(addresses);
 }
 
+EthereumAddressMysqlModel.prototype.canSync = function() {
+  if(this._light) {
+    return new Promise((resolve, reject) => {
+      pool.getConnection((err, connection) => {
+        connection.query("SELECT address FROM Address WHERE is_api_sync = TRUE LIMIT 1",  (error, results, fields) => {
+          console.log(results);
+          if(results && results.length > 0) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        });
+      });
+    });
+  } else {
+    //is normal mode, always sync
+    return new Promise((resolve, reject) => {
+      resolve(true);
+    });
+  }
+}
+
 
 EthereumAddressMysqlModel.prototype.getFromId = function(id) {
   return new Promise((resolve, reject) => {
@@ -141,19 +163,22 @@ EthereumAddressMysqlModel.prototype.getFromId = function(id) {
       return;
     }
 
-    connection.query(selectColumns()+" WHERE address = ? ", [address],  (error, results, fields) => {
-      if(error) {
-        reject(error);
-        return;
-      }
-      if(results && results.length > 0) {
-        const json = rowToJson(results[0]);
-        CACHE.set(json.id, json);
-        CACHE.set(json.address, json);
-        resolve(json);
-      } else {
-        resolve(undefined);
-      }
+    pool.getConnection((err, connection) => {
+      connection.query(selectColumns()+" WHERE address = ? ", [address],  (error, results, fields) => {
+        connection.release();
+        if(error) {
+          reject(error);
+          return;
+        }
+        if(results && results.length > 0) {
+          const json = rowToJson(results[0]);
+          CACHE.set(json.id, json);
+          CACHE.set(json.address, json);
+          resolve(json);
+        } else {
+          resolve(undefined);
+        }
+      });
     });
   });
 }
