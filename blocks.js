@@ -1,13 +1,16 @@
 
 const config = require("./configs/blocks.js"),
 EventEmitter = require("events").EventEmitter,
-ethereum_transaction = require("./model/ethereum_transaction_mysql_explode");
+ethereum_transaction = require("./model/ethereum_transaction_mysql_explode"),
+ethereum_address = require("./model/ethereum_address_mysql");
+
 //it is considered safe to have at least 12 blocks after a given
 //block to prevent that the fetched block is a forked block
 const SAFE_BLOCK_DELTA_HEIGHT = 12;
 
 //constructor
 function Blocks(provider, prefix = "") {
+  this._last_sync_ok = false;
   this._provider = provider;
   this._prefix = prefix || "";
   this._is_started = false;
@@ -43,6 +46,8 @@ Blocks.prototype.getLastBlockManaged = function() {
     console.log("getLastBlockManaged");
       ethereum_transaction.lastBlockNumber()
       .then(lastBlockNumber => {
+        //since it was ok, load next block...
+        if(lastthis._last_sync_ok) lastBlockNumber ++;
         console.log(lastBlockNumber);
         if(lastBlockNumber < 46000) lastBlockNumber = 46000;
         resolve(lastBlockNumber);
@@ -73,10 +78,20 @@ Blocks.prototype.isStarted = function() {
 
 Blocks.prototype.internalStart = function(first_block, force) {
     this._is_started = true;
+    var can_start = false;
 
-    this._provider.getBlockNumber()
+    ethereum_address.canSync()
+    .then(as_api_sync => {
+      can_start = as_api_sync;
+      if(!can_start) {
+        this._is_started = false;
+        return;
+      }
+
+      return this._provider.getBlockNumber();
+    })
     .then(blockNumber => {
-      console.log("blockNumber", blockNumber);
+      console.log("blockNumber", blockNumber+" "+can_start);
       blockNumber -= SAFE_BLOCK_DELTA_HEIGHT;
       if(first_block + 10000 < blockNumber) {
         blockNumber = first_block + 10000;
@@ -196,6 +211,7 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
               callback(i+1);
             })
             .catch(err => {
+            this._last_sync_ok = false;
               reject(err);
             })
           } else {
@@ -208,6 +224,7 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
               const save_out = save_end[0]+"."+Math.floor(save_end[1]/factor);
 
               console.log(`finished ${whole_out} / ${save_out}`);
+              this._last_sync_ok = true;
               resolve(startBlockNumber);
             })
             .catch(err => {
@@ -219,6 +236,7 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
         callback(0);
       })
       .catch(err => {
+        this._last_sync_ok = false;
         console.log("restarting in 10s....", err ? err.toString() : "error");
         setTimeout(() => { resolve(begin_block); }, 10000);
       })
