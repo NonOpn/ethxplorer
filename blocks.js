@@ -15,6 +15,7 @@ function Blocks(provider, prefix = "") {
   this._prefix = prefix || "";
   this._is_started = false;
   this._speedup = config.speedup;
+  this._is_in_event = false;
   this._internal_event = new EventEmitter();
   this.init();
 }
@@ -26,18 +27,24 @@ Blocks.prototype.init = function() {
   }
 
   this._internal_event.on("current_batch", (current_block_number, end_block_number) => {
-    if(current_block_number >= end_block_number) {
-      finish(current_block_number, end_block_number);
-      return;
-    }
+    if(!this._is_in_event) {
+      this._is_in_event = true;
+      if(current_block_number >= end_block_number) {
+        this._is_in_event = false;
+        finish(current_block_number, end_block_number);
+        return;
+      }
 
-    this.manageTransactionsForBlocks(current_block_number, end_block_number)
-    .then(last_block_managed => {
-      this._internal_event.emit("current_batch", last_block_managed, end_block_number);
-    })
-    .catch(e => {
-      console.log(e);
-    });
+      this.manageTransactionsForBlocks(current_block_number, end_block_number)
+      .then(last_block_managed => {
+        this._is_in_event = false;
+        this._internal_event.emit("current_batch", last_block_managed, end_block_number);
+      })
+      .catch(e => {
+        this._is_in_event = false;
+        console.log(e);
+      });
+    }
   });
 }
 
