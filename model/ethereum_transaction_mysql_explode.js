@@ -378,24 +378,27 @@ EthereumTransactionMysqlModel.prototype.saveMultipleForTable = function(table, t
       promises.push(new Promise((resolve, reject) => {
         const from = transaction.from;
         const to = transaction.to;
-        if(EthereumAddressMysqlModel.canSave(from, to)) {
-          //if at least one of the adresses is know, save both
-          EthereumAddressMysqlModel.getOrSave(from)
-          .then(from_json => {
-            EthereumAddressMysqlModel.getOrSave(to)
-            .then(to_json => {
-              //if both nulls > light mode! so no management for this tx
-              console.log(table +" "+from+" "+to);
-              const tx = txToArrayForInsert(transaction, from_json.id, to_json.id);
-              resolve(tx);
-            })
-            .catch(err => {
-              console.log(err);
+        EthereumAddressMysqlModel.canSave(from, to)
+        .then(can_save => {
+          if(can_save) {
+            //if at least one of the adresses is know, save both
+            EthereumAddressMysqlModel.getOrSave(from)
+            .then(from_json => {
+              EthereumAddressMysqlModel.getOrSave(to)
+              .then(to_json => {
+                //if both nulls > light mode! so no management for this tx
+                console.log(table +" "+from+" "+to);
+                const tx = txToArrayForInsert(transaction, from_json.id, to_json.id);
+                resolve(tx);
+              })
+              .catch(err => {
+                console.log(err);
+              });
             });
-          })
-        } else {
-          resolve(null);
-        }
+          } else {
+            resolve(null);
+          }
+        });
       }));
     });
 
