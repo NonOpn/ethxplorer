@@ -9,7 +9,8 @@ ethereum_address = require("./model/ethereum_address_mysql");
 const SAFE_BLOCK_DELTA_HEIGHT = 12;
 
 //constructor
-function Blocks(provider, prefix = "") {
+function Blocks(provider, event_manager, prefix = "") {
+  this._event_manager = event_manager;
   this._last_sync_ok = false;
   this._provider = provider;
   this._prefix = prefix || "";
@@ -180,6 +181,7 @@ Blocks.prototype.fetchBlock = function(block_number) {
 
 Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlockNumber) {
   return new Promise((resolve, reject) => {
+    const original = startBlockNumber;
     var whole_start = process.hrtime();
     console.log(`from #${startBlockNumber} to #${endBlockNumber} :: light? ${ethereum_transaction.isLight()}`);
     if(startBlockNumber < endBlockNumber) {
@@ -228,6 +230,14 @@ Blocks.prototype.manageTransactionsForBlocks = function(startBlockNumber, endBlo
           } else {
             ethereum_transaction.saveMergeable(output)
             .then(result => {
+
+              var i = original;
+              for(;i<startBlockNumber;i++) {
+                this._event_manager.publish("/block/", {
+                  blockNumber: i
+                });
+              }
+
               const factor = 1000000;
               const retr_end = process.hrtime(whole_start);
               const save_end = process.hrtime(hrstart);
