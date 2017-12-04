@@ -49,7 +49,7 @@ MQTT.prototype.publish = function(topic, json) {
     this.server.publish({
       topic: topic,
       payload: JSON.stringify(json),
-      qos:0,
+      qos:2,
       retain: false
     }, function() {
     });
