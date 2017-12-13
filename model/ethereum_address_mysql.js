@@ -136,7 +136,13 @@ EthereumAddressMysqlModel.prototype.canSave = function(from, to) {
 
 EthereumAddressMysqlModel.prototype.manageAddresses = function(addresses) {
   //always save addresses
-  return this.saveMultiple(addresses);
+  if(this._light) {
+    return new Promise((resolve, reject) => {
+      resolve(true);
+    })
+  } else {
+    return this.saveMultiple(addresses);
+  }
 }
 
 EthereumAddressMysqlModel.prototype.canSync = function() {
