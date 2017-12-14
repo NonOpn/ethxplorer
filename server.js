@@ -1,5 +1,6 @@
 const config = require("./configs/server.js"),
 express = require("express"),
+body_parser = require("body-parser"),
 app = express(),
 api_v1 = require("./server/api_v1");
 
@@ -16,6 +17,7 @@ Server.prototype.start = function() {
   const server = require("http").Server(app);
 
   app
+  app.use(body_parser.json())
   .use("/api/v1", api_v1);
 
   app.listen(config.port, config.address);
