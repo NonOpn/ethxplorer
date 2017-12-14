@@ -136,6 +136,27 @@ router.get("/tx/match/input/:input.json", function(req, res) {
   }
 });
 
+function sendRaw(raw, res) {
+  if(raw) {
+    web3.eth.sendSignedTransaction(raw, (err, hash) => {
+      if(!err) res.json({ hash: hash });
+      else res.status(500).json({ err: err.message || "error with Ethereum's proxy", code: -2 });
+    })
+  } else {
+    res.status(500).json({ err: "Invalid request, missing key raw in json body", code: -1})
+  }
+}
+
+router.get("/tx/send/:raw", function(req, res) {
+  const raw = req.params.raw || undefined;
+  sendRaw(raw, res);
+});
+
+router.post("/tx/send", function(req, res) {
+  const raw = req.body.raw || undefined;
+  sendRaw(raw, res);
+});
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Retrieve the current geth or parity node state and the current database
