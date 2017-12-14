@@ -9,6 +9,7 @@
   "author": "Kévin LE PERF",
   "license": "GPL v3.0",
   "dependencies": {
+    "body-parser": "^1.18.2",
     "dotenv": "^4.0.0",
     "etherscan-api": "^3.0.11",
     "express": "^4.15.5",
