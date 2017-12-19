@@ -179,5 +179,6 @@ function executeInPool(request, args) {
 module.exports = {
   init: init,
   executeInPool: executeInPool,
-  system_tables: _system_tables
+  system_tables: _system_tables,
+  prefix_size: connection.prefix_size
 };
