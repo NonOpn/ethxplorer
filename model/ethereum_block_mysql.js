@@ -4,8 +4,6 @@ config = require("../configs/blocks.js"),
 murmurHash = require('murmurhash-native').murmurHash,
 connection = require("../database/init");
 
-const pool = connection.pool;
-
 const COLUMNS = ["id", "blockHash", "timestamp"];
 
 function createInsertRows() {
@@ -41,41 +39,17 @@ EthereumBlockMysqlModel.prototype.getModelName = function() {
 
 EthereumBlockMysqlModel.prototype.exists = function(blockNumber) {
   return new Promise((resolve, reject) => {
-    pool.getConnection((err, connection) => {
-      connection.query("SELECT id FROM Block WHERE id = ? ", [blockNumber],  (error, results, fields) => {
-        connection.release();
-        if(error) {
-          reject(error);
-          return;
-        }
-
-        if(results && results.length > 0) {
-          resolve(true);
-        } else {
-          resolve(false);
-        }
-      });
-    });
+    connection.executeInPool("SELECT id FROM Block WHERE id = ? ", [blockNumber])
+    .then(results => resolve(results && results.length > 0))
+    .catch(error => reject(error));
   });
 }
 
 EthereumBlockMysqlModel.prototype.lastBlockNumber = function() {
   return new Promise((resolve, reject) => {
-    pool.getConnection((err, connection) => {
-      connection.query("SELECT MAX(id) as c FROM Block",  (error, results, fields) => {
-        connection.release();
-        if(error) {
-          reject(error);
-          return;
-        }
-
-        if(results && results.length > 0) {
-          resolve(results[0].c);
-        } else {
-          resolve(0);
-        }
-      });
-    });
+    connection.executeInPool("SELECT MAX(id) as c FROM Block")
+    .then(results => resolve(results.length > 0 ? results[0].c : 0))
+    .catch(error => reject(error));
   });
 }
 
@@ -97,46 +71,27 @@ EthereumBlockMysqlModel.prototype.getOrSave = function(block) {
 
 EthereumBlockMysqlModel.prototype.get = function(blockNumber) {
   return new Promise((resolve, reject) => {
-    pool.getConnection((err, connection) => {
-      connection.query(selectColumns()+" WHERE id = ? ", [blockNumber],  (error, results, fields) => {
-        connection.release();
-        if(error) {
-          reject(error);
-          return;
-        }
-
-        if(results && results.length > 0) {
-          resolve(rowToJson(results[0]));
-        } else {
-          resolve(undefined);
-        }
-      });
-    });
+    connection.executeInPool(selectColumns()+" WHERE id = ? ", [blockNumber])
+    .then(results => resolve(results.length > 0 ? rowToJson(results[0]) : undefined))
+    .catch(error => reject(error));
   });
 }
 
 EthereumBlockMysqlModel.prototype.save = function(block) {
   return new Promise((resolve, reject) => {
-    pool.getConnection((err, connection) => {
-      connection.query("INSERT INTO Block (`id`, `blockHash`, `timestamp`) VALUES (?, ?, ?)", [block.number, block.hash, block.timestamp], (error, results, fields) => {
-        connection.release();
-        if(error) {
-          if(error.code == "ER_DUP_ENTRY") {
-            this.get(block.number)
-            .then(json => resolve(json))
-            .catch(err => reject(err));
-          } else {
-            reject(error);
-          }
-        } else {
-          resolve({
-            blockNumber: block.number,//results.insertId,
-            blockHash: block.hash,
-            timestamp: block.timestamp
-          });
-        }
-      });
-    });
+    connection.executeInPool("INSERT INTO Block (`id`, `blockHash`, `timestamp`) VALUES (?, ?, ?)", [block.number, block.hash, block.timestamp])
+    .then(results => {
+      resolve({ blockNumber: block.number, blockHash: block.hash, timestamp: block.timestamp });
+    })
+    .catch(error => {
+      if(error.code == "ER_DUP_ENTRY") {
+        this.get(block.number)
+        .then(json => resolve(json))
+        .catch(err => reject(err));
+      } else {
+        reject(error);
+      }
+    })
   });
 }
 

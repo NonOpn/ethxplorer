@@ -3,7 +3,6 @@ config = require("../configs/blocks.js");
 
 const _system_tables = [];
 
-//TODO change connection object to wrapper
 //TODO implement state management
 
 var connection = mysql.createConnection({
@@ -104,7 +103,7 @@ function append(array, remaining) {
 
 connection.prefix_size = 2;
 
-connection.init = function() {
+function init() {
   return new Promise((resolve, reject) => {
     connection.query(CREATE_TABLE_ADDRESS, function(err, results, fields) {
       console.log("table creation finished", err);
@@ -155,7 +154,30 @@ connection.init = function() {
   });
 }
 
-connection.system_tables = _system_tables;
-connection.pool = pool;
+function executeInPool(request, args) {
+  return new Promise((resolve, reject) => {
+    pool.getConnection((err, connection) => {
+      if(!connection) {
+        reject(err);
+      } else {
+        const callback = (err, results, fields) => {
+          connection.release();
+          if(err) reject(err);
+          else resolve(results);
+        }
 
-module.exports = connection;
+        if(!args) {
+          connection.query(request, callback);
+        } else {
+          connection.query(request, args, callback);
+        }
+      }
+    });
+  });
+}
+
+module.exports = {
+  init: init,
+  executeInPool: executeInPool,
+  system_tables: _system_tables
+};
