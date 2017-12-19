@@ -92,7 +92,7 @@ router.get("/address/:address.json", function(req, res) {
       //TODO switch this to id since now id = <block + nonce>
 
       if(results.length === LIMIT) {
-        results = results.filter(result => { return result.blockNumber != last_id; });
+        results = results.filter(result => result.blockNumber != last_id);
         //new round table... reset the last block to the last complete block retrieved
         last_id = 0;
         results.forEach(result => {
@@ -167,9 +167,6 @@ router.get("/state.json", function(req, res) {
   console.log(web3.version);
   const promises = [
     ethereum_transaction.systemDataAsJson(),
-    /*web3.eth.getBlockNumber(),
-    web3.eth.isSyncing(),
-    web3.version*/
   ];
 
   Promise.all(promises)
