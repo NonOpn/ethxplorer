@@ -158,6 +158,13 @@ router.post("/tx/send", function(req, res) {
 });
 
 
+router.get("/network.json", (req, res) => {
+  web3.eth.getGasPrice((err, result) => {
+    if(err) res.status(500).json({ err: "Invalid", code: -1});
+    else res.json({gasPrice: result});
+  })
+});
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 * Retrieve the current geth or parity node state and the current database
 * manager
